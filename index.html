@@ -588,7 +588,7 @@
 
     .trace { position: relative; min-width: 0; display: flex; align-items: center; gap: 0; padding: 6px 0 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
     .trace::-webkit-scrollbar { display: none; }
-    .trace-group { display: flex; align-items: center; position: relative; flex: 1 1 auto; }
+    .trace-group { display: flex; align-items: center; position: relative; flex: 0 1 auto; }
     .trace-group + .trace-group { margin-left: 12px; }
     .trace-group-band { position: absolute; left: 4px; right: 4px; bottom: -13px; height: 3px; border-radius: 2px; }
     .trace-seg { flex: 1 1 22px; min-width: 12px; max-width: 110px; height: 3px; background: var(--copper); position: relative; overflow: hidden; }
@@ -674,6 +674,19 @@
     .add-panel .span-2 { grid-column: 1 / -1; }
     .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
     .detect { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: var(--ink-3); }
+    .add-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .add-head .chip .icon { width: 13px; height: 13px; }
+    .upload-zone { padding: 22px 12px; }
+    .upload-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+    .upload-item { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 10px; border: 1px solid var(--line-2); border-radius: var(--r-2); background: var(--board-2); }
+    .upload-item .ic { width: 34px; height: 24px; font-size: 0.6rem; margin: 4px 0; }
+    .upload-name { flex: 1; min-width: 0; font-size: var(--t-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .save-where { margin-top: 12px; font-size: var(--t-xs); color: var(--ink-2); line-height: 1.5; }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--primary); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+    :root[data-theme="dark"] .link-btn { color: var(--rail-blue); }
+    .folder-notice { align-items: center; margin: 12px 0 0; }
+    .folder-notice > div { flex: 1; }
+    .folder-row { padding: 12px 14px; border: 1px solid var(--line-2); border-radius: var(--r-2); background: var(--board-2); }
 
     /* =========================================================================
        PARTS LIST
@@ -930,7 +943,10 @@
 
     .links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .link-list { display: grid; }
-    .link-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 18px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; transition: background-color var(--dur-1) ease; }
+    .link-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; padding: 8px 12px 8px 18px; border-bottom: 1px solid var(--line); transition: background-color var(--dur-1) ease; }
+    .link-main { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; padding: 4px 0; text-decoration: none; color: inherit; }
+    .link-main:hover .link-title { text-decoration: underline; text-underline-offset: 3px; }
+    .link-form { grid-template-columns: minmax(150px, 0.34fr) minmax(0, 1fr) auto; border-radius: 0 0 var(--r-3) var(--r-3); }
     .link-row:last-child { border-bottom: 0; border-radius: 0 0 var(--r-3) var(--r-3); }
     .link-row:hover { background: var(--board-2); }
     .link-title { font-weight: 600; font-size: var(--t-base); line-height: 1.3; }
@@ -990,7 +1006,7 @@
 
     /* Tutor sheet */
     .tutor {
-      margin: 0 0 0 auto; height: 100vh; max-height: 100vh;
+      margin: 0 0 0 auto; height: 100vh; max-height: 100vh; overflow: hidden;
       width: min(1120px, 100vw);
       box-shadow: var(--lift-3);
       display: none; flex-direction: column;
@@ -1023,7 +1039,8 @@
     .faceplate .btn-primary { --btn-bg: var(--phosphor); --btn-ink: oklch(16% 0.02 160); --btn-border: transparent; }
     .faceplate .btn-primary:hover { background: oklch(90% 0.17 145); }
 
-    .tutor-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+    .tutor-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+    .tutor-setup, .tutor-read { min-height: 0; }
     .tutor-setup { overflow: auto; padding: 18px; display: grid; gap: 16px; align-content: start; background: var(--board); border-right: 1px solid var(--line-2); }
     .setup-step { display: grid; gap: 8px; }
     .setup-or { display: flex; align-items: center; gap: 10px; font-size: var(--t-xs); color: var(--ink-3); }
@@ -1334,8 +1351,9 @@
         <section role="tabpanel" id="panel-materials" aria-labelledby="tab-materials">
           <div class="toolbar">
             <div class="chips" id="typeChips" role="group" aria-label="Filter by type"></div>
-            <button type="button" class="btn" data-action="toggle-add"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg><span>Add material</span></button>
+            <button type="button" class="btn" data-action="toggle-add"><svg class="icon" aria-hidden="true"><use href="#i-upload"></use></svg><span>Upload files</span></button>
           </div>
+          <div id="folderNotice"></div>
           <div id="addPanelHost"></div>
           <div id="resultLine"></div>
           <div id="partsHost"></div>
@@ -1429,6 +1447,13 @@
       </div>
       <div class="dialog-body">
         <div class="callout"><span class="led is-on" aria-hidden="true"></span><div><strong>Your keys stay in this browser.</strong> They are never written into the HeartAttack file, so sharing it with classmates never shares your keys.</div></div>
+        <div class="storage-row folder-row">
+          <div>
+            <div class="field-label">Study folder</div>
+            <div class="field-hint" id="folderInfo"></div>
+          </div>
+          <div class="panel-tools" id="folderActions"></div>
+        </div>
         <div class="field">
           <label class="field-label" for="kGemini">Google Gemini API key</label>
           <div class="key-field">
@@ -2183,171 +2208,291 @@
 
     const SEMESTER = "Fall 2026";
 
-    // kind: "math" renders with KaTeX, "text" is plain prose, "code" is monospace code.
+    // Each student adds their own files, formulas and links; only the course list is built in.
     const COURSES = [
-      {
-        id: "cse2120",
-        name: "Circuit and Lab",
-        code: "202602-CSE2120-002",
-        instructor: "An Chongkoo",
-        isNew: false,
-        description: "Study of electric circuits, Ohm's law, Kirchhoff's laws (KVL & KCL), circuit variables, RLC networks, and hands-on laboratory experiments.",
-        tools: [
-          { title: "Falstad Circuit Simulator", url: "https://www.falstad.com/circuit/", desc: "Interactive in-browser circuit simulator with real-time current flow animations." },
-          { title: "PhET Circuit Construction Kit", url: "https://phet.colorado.edu/en/simulations/circuit-construction-kit-dc", desc: "Interactive DC circuit sandbox with virtual multimeters and components." },
-          { title: "All About Circuits Reference", url: "https://www.allaboutcircuits.com/textbook/", desc: "Free comprehensive electrical engineering textbook." }
-        ],
-        cheats: [
-          { label: "Ohm's Law", val: "V = I \\times R \\quad \\implies \\quad R = \\frac{V}{I}, \\quad I = \\frac{V}{R}" },
-          { label: "Electric Power", val: "P = V \\cdot I = I^2 R = \\frac{V^2}{R} \\quad (\\text{Watts})" },
-          { label: "Kirchhoff's Current Law (KCL)", val: "\\sum_{k=1}^n I_k = 0", note: "The sum of currents entering a node is zero." },
-          { label: "Kirchhoff's Voltage Law (KVL)", val: "\\sum_{k=1}^n V_k = 0", note: "The sum of voltages around any closed loop is zero." },
-          { label: "Resistors in Series", val: "R_{\\text{eq}} = R_1 + R_2 + \\dots + R_n" },
-          { label: "Resistors in Parallel", val: "\\frac{1}{R_{\\text{eq}}} = \\frac{1}{R_1} + \\frac{1}{R_2} \\implies R_{\\text{eq}} = \\frac{R_1 R_2}{R_1 + R_2}" }
-        ]
-      },
-      {
-        id: "gen2021",
-        name: "Academic English 3",
-        code: "202602-GEN2021-007",
-        instructor: "Turgunova Shakhnoza",
-        isNew: true,
-        description: "Advanced academic writing, research paper synthesis, formal presentations, and critical scholarly analysis.",
-        tools: [
-          { title: "Purdue Online Writing Lab (OWL)", url: "https://owl.purdue.edu/", desc: "The definitive guide for academic writing, citations, and research papers." },
-          { title: "Cambridge Academic English Dictionary", url: "https://dictionary.cambridge.org/", desc: "Reliable academic collocations, definitions, and phonetics." },
-          { title: "Academic Word List (AWL)", url: "https://www.wgtn.ac.nz/lals/resources/academicwordlist", desc: "Top 570 word families frequently found in academic texts." }
-        ],
-        cheats: [
-          { label: "Essay Structure", kind: "text", val: "Introduction (hook + thesis) → Body paragraphs (PEEL) → Conclusion" },
-          { label: "Hedging Phrases", kind: "text", val: "It appears that… · Evidence suggests that… · This may indicate…" },
-          { label: "Transitions", kind: "text", val: "Conversely · Furthermore · Consequently · In spite of · Whereas" }
-        ]
-      },
-      {
-        id: "gen2033",
-        name: "Basic Korean 1",
-        code: "202602-GEN2033-005",
-        instructor: "Makhamedova Shirin",
-        isNew: false,
-        description: "Foundational Korean language course covering Hangul alphabet, basic grammar structures, everyday vocabulary, and conversational skills.",
-        tools: [
-          { title: "How to Study Korean (Unit 1)", url: "https://www.howtostudykorean.com/unit1/", desc: "Step-by-step Hangul pronunciation and basic grammar lessons." },
-          { title: "Naver Korean-English Dictionary", url: "https://korean.dict.naver.com/", desc: "The standard online dictionary with native audio pronunciation." },
-          { title: "Talk To Me In Korean (TTMIK)", url: "https://talktomeinkorean.com/", desc: "Engaging audio lessons and everyday conversational phrases." }
-        ],
-        cheats: [
-          { label: "Basic Consonants", kind: "text", val: "ㄱ (g/k), ㄴ (n), ㄷ (d/t), ㄹ (r/l), ㅁ (m), ㅂ (b/p), ㅅ (s), ㅇ (ng/silent), ㅈ (j), ㅎ (h)" },
-          { label: "Basic Vowels", kind: "text", val: "ㅏ (a), ㅑ (ya), ㅓ (eo), ㅕ (yeo), ㅗ (o), ㅛ (yo), ㅜ (u), ㅠ (yu), ㅡ (eu), ㅣ (i)" },
-          { label: "Greetings", kind: "text", val: "안녕하세요 (Annyeonghaseyo) — Hello\n반갑습니다 (Bangapseumnida) — Nice to meet you" },
-          { label: "Gratitude & Polite", kind: "text", val: "감사합니다 (Gamsahamnida) — Thank you\n죄송합니다 (Joesonghamnida) — I am sorry" }
-        ]
-      },
-      {
-        id: "msc2010",
-        name: "Engineering Mathematics",
-        code: "202602-MSC2010-004",
-        instructor: "Allah Ditta",
-        isNew: false,
-        description: "Ordinary and partial differential equations, modeling physical phenomena, Laplace transforms, and series solutions.",
-        tools: [
-          { title: "Paul's Online Math Notes (Differential Equations)", url: "https://tutorial.math.lamar.edu/Classes/DE/DE.aspx", desc: "In-depth explanations and worked step-by-step example problems." },
-          { title: "Symbolab Differential Equations Solver", url: "https://www.symbolab.com/solver/differential-equation-calculator", desc: "Step-by-step solutions for 1st and 2nd order differential equations." },
-          { title: "3Blue1Brown - Differential Equations", url: "https://www.youtube.com/playlist?list=PLZHQObOWTQDNPOjrT6KVlfJuKtYTftqMa", desc: "Intuitive geometric and physical visualizations of differential equations." }
-        ],
-        cheats: [
-          { label: "Separable DE", val: "\\frac{dy}{dx} = g(x)h(y) \\implies \\int \\frac{1}{h(y)}dy = \\int g(x)dx" },
-          { label: "1st Order Linear DE", val: "y' + P(x)y = Q(x), \\quad I(x) = e^{\\int P(x)dx} \\implies y(x) = \\frac{1}{I(x)} \\left[\\int I(x)Q(x)dx + C\\right]" },
-          { label: "2nd Order Characteristic", val: "a y'' + b y' + c y = 0 \\implies a r^2 + b r + c = 0" },
-          { label: "Real Distinct Roots", val: "y(x) = c_1 e^{r_1 x} + c_2 e^{r_2 x}" },
-          { label: "Complex Roots α ± iβ", val: "y(x) = e^{\\alpha x} \\left[ c_1 \\cos(\\beta x) + c_2 \\sin(\\beta x) \\right]" }
-        ]
-      },
-      {
-        id: "msc2020",
-        name: "Linear Algebra",
-        code: "202602-MSC2020-004",
-        instructor: "Askarova Ayjamal",
-        isNew: false,
-        description: "Systems of linear equations, matrices, determinants, vector spaces, eigenvalues, eigenvectors, and linear transformations.",
-        tools: [
-          { title: "3Blue1Brown - Essence of Linear Algebra", url: "https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab", desc: "The legendary visual explanation of vectors, transformations, and determinants." },
-          { title: "Matrix Reshish Calculator", url: "https://matrix.reshish.com/", desc: "Fast calculation of inverses, eigenvalues, rank, and Gaussian elimination." },
-          { title: "Immersive Linear Algebra", url: "http://immersivemath.com/ila/index.html", desc: "Interactive, 3D fully rotatable linear algebra online textbook." }
-        ],
-        cheats: [
-          { label: "Matrix 2x2 Inverse", val: "A = \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix} \\implies A^{-1} = \\frac{1}{ad - bc} \\begin{pmatrix} d & -b \\\\ -c & a \\end{pmatrix}" },
-          { label: "Eigenvalues & Eigenvectors", val: "A \\mathbf{v} = \\lambda \\mathbf{v} \\iff \\det(A - \\lambda I) = 0" },
-          { label: "Rank-Nullity Theorem", val: "\\text{rank}(A) + \\text{nullity}(A) = n \\quad (\\text{columns of } A)" },
-          { label: "Dot Product & Angle", val: "\\mathbf{u} \\cdot \\mathbf{v} = \\sum_{i=1}^n u_i v_i = \\|\\mathbf{u}\\| \\|\\mathbf{v}\\| \\cos(\\theta)" }
-        ]
-      },
-      {
-        id: "msc2070",
-        name: "Application Programming in Java",
-        code: "202602-MSC2070-005",
-        instructor: "Dragunov Andrei",
-        isNew: false,
-        description: "Core Java programming, Object-Oriented Programming (OOP), inheritance, polymorphism, Java collections framework, exception handling, and lab assignments.",
-        tools: [
-          { title: "Oracle Official Java Documentation", url: "https://docs.oracle.com/en/java/javase/21/docs/api/", desc: "Authoritative standard library API reference for Java." },
-          { title: "Baeldung Java Guides", url: "https://www.baeldung.com/category/java/", desc: "Clear, practical, and modern tutorials on core Java patterns." },
-          { title: "Online Java Compiler (Programiz)", url: "https://www.programiz.com/java-programming/online-compiler/", desc: "Instant in-browser Java sandbox to test code snippets quickly." }
-        ],
-        cheats: [
-          { label: "Main Entrypoint", kind: "code", val: "public static void main(String[] args) { ... }" },
-          { label: "Scanner Input", kind: "code", val: "Scanner sc = new Scanner(System.in);\nint n = sc.nextInt();" },
-          { label: "OOP Inheritance", kind: "code", val: "class Dog extends Animal implements Pet { ... }" },
-          { label: "Collections (List)", kind: "code", val: "List<String> list = new ArrayList<>();\nlist.add(\"item\");" }
-        ]
-      },
-      {
-        id: "soc2010",
-        name: "Data Structure",
-        code: "202602-SOC2010-004",
-        instructor: "Seth Kirti",
-        isNew: true,
-        description: "Analysis of time and space complexity, searching and sorting algorithms, stacks, queues, linked lists, trees, graphs, and dynamic programming.",
-        tools: [
-          { title: "VisuAlgo - Visualizing Algorithms", url: "https://visualgo.net/en", desc: "Interactive animations showing how algorithms step through data structures." },
-          { title: "Big-O Cheat Sheet", url: "https://www.bigocheatsheet.com/", desc: "Comprehensive chart of time & space complexities for all standard structures." },
-          { title: "LeetCode Study Roadmap", url: "https://leetcode.com/explore/", desc: "Curated problem sets to master data structures and coding interviews." }
-        ],
-        cheats: [
-          { label: "Linear Search", val: "\\text{Time: } O(n), \\quad \\text{Space: } O(1)" },
-          { label: "Binary Search", val: "\\text{Time: } O(\\log n), \\quad \\text{Space: } O(1)", note: "Requires a sorted array." },
-          { label: "Stack / Queue", val: "\\text{Push / Pop / Enqueue / Dequeue: } O(1)" },
-          { label: "Binary Search Tree (BST)", val: "\\text{Average search: } O(\\log n), \\quad \\text{Worst (skewed): } O(n)" },
-          { label: "Big-O Hierarchy", val: "O(1) < O(\\log n) < O(n) < O(n \\log n) < O(n^2) < O(2^n)" }
-        ]
-      }
-    ];
-
-    const GENERAL_TOOLS = [
-      { title: "Inha University in Tashkent Portal", url: "https://inha.uz", desc: "Official university site and academic announcements." },
-      { title: "Wolfram|Alpha Computational Engine", url: "https://www.wolframalpha.com/", desc: "Step-by-step calculus, linear algebra, and plotting." },
-      { title: "GitHub Student Developer Pack", url: "https://education.github.com/pack", desc: "Free developer tools, JetBrains IDEs, and cloud credits." }
+      { id: "cse2120", name: "Circuit and Lab", code: "202602-CSE2120-002", instructor: "An Chongkoo", isNew: false },
+      { id: "gen2021", name: "Academic English 3", code: "202602-GEN2021-007", instructor: "Turgunova Shakhnoza", isNew: true },
+      { id: "gen2033", name: "Basic Korean 1", code: "202602-GEN2033-005", instructor: "Makhamedova Shirin", isNew: false },
+      { id: "msc2010", name: "Engineering Mathematics", code: "202602-MSC2010-004", instructor: "Allah Ditta", isNew: false },
+      { id: "msc2020", name: "Linear Algebra", code: "202602-MSC2020-004", instructor: "Askarova Ayjamal", isNew: false },
+      { id: "msc2070", name: "Application Programming in Java", code: "202602-MSC2070-005", instructor: "Dragunov Andrei", isNew: false },
+      { id: "soc2010", name: "Data Structure", code: "202602-SOC2010-004", instructor: "Seth Kirti", isNew: true }
     ];
 
     const CATEGORIES = ["Lectures & Slides", "Labs & Assignments", "Textbooks & Handbooks", "Syllabi & Information"];
 
-    const DEFAULT_MATERIALS = [
-      { id: "mat_java_syl", courseId: "msc2070", title: "SOC2030 APJ Syllabus 2026", filename: "SOC2030 APJ syllabus2026.pdf", type: "pdf", category: "Syllabi & Information", size: "253 KB", description: "Official course syllabus detailing grading policies, weekly topics, exams, and guidelines." },
-      { id: "mat_java_1_1", courseId: "msc2070", title: "Lecture 1.1: Course Introduction", filename: "Java_1.pdf", type: "pdf", category: "Lectures & Slides", size: "1.4 MB", description: "Introduction to Application Programming in Java, course scope, and environment setup." },
-      { id: "mat_java_1_2", courseId: "msc2070", title: "Lecture 1.2: Java Basics & Syntax", filename: "Java_1_2 Java basic.pdf", type: "pdf", category: "Lectures & Slides", size: "1.3 MB", description: "Java syntax, primitive types, operators, flow control, and introductory program structure." },
-      { id: "mat_java_2", courseId: "msc2070", title: "Week 2 Lecture: Object-Oriented Concepts", filename: "Java_2_1_2_26.pdf", type: "pdf", category: "Lectures & Slides", size: "832 KB", description: "OOP foundation: classes, objects, methods, constructors, and encapsulation." },
-      { id: "mat_java_lab1", courseId: "msc2070", title: "Lab Assignment #1: Fundamentals", filename: "01 Lab_Assignment 2026 (1).pdf", type: "pdf", category: "Labs & Assignments", size: "204 KB", description: "Hands-on coding problems on basic I/O, conditions, and loops in Java." },
-      { id: "mat_java_lab2", courseId: "msc2070", title: "Lab Assignment #2: Methods & Classes", filename: "02 Lab_Assignment 2026.pdf", type: "pdf", category: "Labs & Assignments", size: "118 KB", description: "Implementing class structures, parameter passing, and object instantiation." },
-      { id: "mat_ds_book", courseId: "soc2010", title: "Data Structures Using C (Complete Textbook)", filename: "DataStructuresUsingC (1).pdf", type: "pdf", category: "Textbooks & Handbooks", size: "5.5 MB", description: "Comprehensive 945-page textbook covering all fundamental structures and algorithms in C." },
-      { id: "mat_ds_w1", courseId: "soc2010", title: "Week 1: Introduction to Data Structures", filename: "Data Structures.pptx", type: "pptx", category: "Lectures & Slides", size: "844 KB", description: "Overview of data structures classification, operations, algorithm definition, and importance." },
-      { id: "mat_ds_space", courseId: "soc2010", title: "Lecture 3: Analyzing Space Complexity", filename: "03 -Analyzing Space Complexity.pptx", type: "pptx", category: "Lectures & Slides", size: "46 KB", description: "Formal analysis of auxiliary memory usage, space-time tradeoffs, and big-O space bounds." },
-      { id: "mat_ds_search", courseId: "soc2010", title: "Lecture 4: Searching Techniques", filename: "04 -Searching Techniques.pptx", type: "pptx", category: "Lectures & Slides", size: "85 KB", description: "Linear search vs. binary search algorithms, step-by-step logic, and time complexities." },
-      { id: "mat_ds_classroom", courseId: "soc2010", title: "Classroom Motivation: Learning Mode", filename: "Presentation1.pptx", type: "pptx", category: "Lectures & Slides", size: "21.8 MB", description: "Course kick-off slides, student focus habits, learning mode vs. distraction mode." },
-      { id: "mat_cl_00", courseId: "cse2120", title: "Circuit & Lab: Introduction & Syllabus (CL00)", filename: "CL2026F00 (1).pdf", type: "pdf", category: "Syllabi & Information", size: "791 KB", description: "Course orientation, schedule, laboratory safety rules, and grading breakdown." },
-      { id: "mat_cl_01", courseId: "cse2120", title: "Chapter 1: Circuit Variables (CL01)", filename: "CL2026F01 (1).pdf", type: "pdf", category: "Lectures & Slides", size: "4.1 MB", description: "Electrical engineering overview, SI units, voltage, current, power, and energy relations." },
-      { id: "mat_math_zill", courseId: "msc2010", title: "Differential Equations with Modeling Applications (11th Ed.)", filename: "D.Zill-A First Course in Differential Equations with Modeling Applications-11th ed (1) (1).pdf", type: "pdf", category: "Textbooks & Handbooks", size: "21.8 MB", description: "Dennis G. Zill's classic 11th Edition textbook: first-order, higher-order DEs, modeling, and series." },
-      { id: "mat_la_lay", courseId: "msc2020", title: "Linear Algebra and Its Applications", filename: "Linear Algebra and Its Aplications.pdf", type: "pdf", category: "Textbooks & Handbooks", size: "33.1 MB", description: "Standard university textbook: linear transformations, matrix algebra, determinants, vector spaces, and eigenvalues." }
-    ];
+    /* =========================================================================
+       FILE STORAGE
+       Uploaded files go to <study folder>/<Course>/<Category>/<file> when the
+       browser can use a folder on the computer (Chrome and Edge on desktop).
+       Otherwise they are kept inside the browser (IndexedDB).
+       ========================================================================= */
+
+    const idb = (() => {
+      let dbPromise = null;
+      function open() {
+        if (!dbPromise) {
+          dbPromise = new Promise((resolve, reject) => {
+            if (!window.indexedDB) return reject(new Error("IndexedDB unavailable"));
+            const req = indexedDB.open("heartattack-2026", 1);
+            req.onupgradeneeded = () => {
+              const db = req.result;
+              if (!db.objectStoreNames.contains("files")) db.createObjectStore("files");
+              if (!db.objectStoreNames.contains("handles")) db.createObjectStore("handles");
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => { dbPromise = null; reject(req.error); };
+          });
+        }
+        return dbPromise;
+      }
+      async function run(storeName, mode, fn) {
+        const db = await open();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, mode);
+          const req = fn(tx.objectStore(storeName));
+          tx.oncomplete = () => resolve(req ? req.result : undefined);
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
+        });
+      }
+      return {
+        get: (storeName, key) => run(storeName, "readonly", st => st.get(key)),
+        put: (storeName, key, value) => run(storeName, "readwrite", st => st.put(value, key)),
+        del: (storeName, key) => run(storeName, "readwrite", st => st.delete(key))
+      };
+    })();
+
+    const STUDY_FOLDER_NAME = "HeartAttack 2026";
+    const FOLDER_GUIDE_NAME = "README - how this folder works.txt";
+    // status: "unsupported" | "none" | "prompt" (needs a click to allow access) | "granted"
+    const studyFolder = { handle: null, status: typeof window.showDirectoryPicker === "function" ? "none" : "unsupported" };
+
+    const safeName = (value) => String(value || "").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().replace(/[. ]+$/, "") || "Untitled";
+    const courseFolderName = (course) => safeName(course.name);
+    const isStoredFile = (m) => m && (m.storage === "folder" || m.storage === "browser");
+    const materialFileId = (path) => "file_" + hashString(path.join("/").toLowerCase());
+
+    function titleFromFilename(name) {
+      return String(name || "").replace(/\.[^.]+$/, "").replace(/[_]+/g, " ").replace(/\s+/g, " ").trim() || String(name || "Untitled");
+    }
+
+    async function loadStudyFolder() {
+      if (studyFolder.status === "unsupported") return;
+      try {
+        const handle = await idb.get("handles", "studyFolder");
+        if (!handle) { studyFolder.status = "none"; return; }
+        studyFolder.handle = handle;
+        const permission = handle.queryPermission ? await handle.queryPermission({ mode: "readwrite" }) : "granted";
+        studyFolder.status = permission === "granted" ? "granted" : "prompt";
+      } catch (e) {
+        studyFolder.status = "none";
+      }
+    }
+
+    async function prepareStudyFolder(root) {
+      for (const course of COURSES) {
+        const courseDir = await root.getDirectoryHandle(courseFolderName(course), { create: true });
+        for (const category of CATEGORIES) await courseDir.getDirectoryHandle(safeName(category), { create: true });
+      }
+      try {
+        await root.getFileHandle(FOLDER_GUIDE_NAME);
+      } catch (e) {
+        const fh = await root.getFileHandle(FOLDER_GUIDE_NAME, { create: true });
+        const writer = await fh.createWritable();
+        await writer.write([
+          "HeartAttack 2026 study folder",
+          "",
+          "Every course has its own folder, with one folder per category inside it:",
+          ...CATEGORIES.map(c => "    <Course>\\" + safeName(c)),
+          "",
+          "Files you upload in HeartAttack are saved here.",
+          "You can also copy files into these folders yourself. HeartAttack picks them up",
+          "the next time it opens, or when you click Rescan in Settings.",
+          "",
+          "Removing a file in HeartAttack also deletes it from this folder."
+        ].join("\r\n"));
+        await writer.close();
+      }
+    }
+
+    // Must be called from a click: the browser shows its folder picker.
+    async function chooseStudyFolder() {
+      if (studyFolder.status === "unsupported") {
+        toast("This browser can't save to a folder on your computer. Use Chrome or Edge on a computer; until then files are kept in this browser.", { type: "warn", duration: 8000 });
+        return false;
+      }
+      let picked;
+      try {
+        picked = await window.showDirectoryPicker({ id: "heartattack-study", mode: "readwrite", startIn: "documents" });
+      } catch (e) {
+        if (e && e.name !== "AbortError") toast("That folder can't be used. Pick a normal folder, for example inside Documents.", { type: "error", duration: 7000 });
+        return false;
+      }
+      try {
+        const root = picked.name === STUDY_FOLDER_NAME ? picked : await picked.getDirectoryHandle(STUDY_FOLDER_NAME, { create: true });
+        await prepareStudyFolder(root);
+        studyFolder.handle = root;
+        studyFolder.status = "granted";
+        try { await idb.put("handles", "studyFolder", root); } catch (e) { /* stays connected for this visit */ }
+        const changed = await scanStudyFolder();
+        renderAll();
+        renderFolderSettings();
+        toast(`Study folder ready: ${picked.name === STUDY_FOLDER_NAME ? picked.name : picked.name + " › " + STUDY_FOLDER_NAME}.${changed ? " Found files already in it." : ""}`, { duration: 6000 });
+        return true;
+      } catch (e) {
+        toast("HeartAttack couldn't create its folders there. Try another location.", { type: "error", duration: 7000 });
+        return false;
+      }
+    }
+
+    // Must be called from a click: the browser asks to allow access again.
+    async function allowStudyFolder() {
+      if (!studyFolder.handle) return chooseStudyFolder();
+      try {
+        const permission = await studyFolder.handle.requestPermission({ mode: "readwrite" });
+        studyFolder.status = permission === "granted" ? "granted" : "prompt";
+      } catch (e) {
+        studyFolder.status = "prompt";
+      }
+      if (studyFolder.status === "granted") {
+        await scanStudyFolder();
+        renderAll();
+        renderFolderSettings();
+      }
+      return studyFolder.status === "granted";
+    }
+
+    async function directoryFor(path, { create = false } = {}) {
+      let dir = studyFolder.handle;
+      for (const part of path) dir = await dir.getDirectoryHandle(part, { create });
+      return dir;
+    }
+
+    async function uniqueFileHandle(dir, name) {
+      const dot = name.lastIndexOf(".");
+      const base = dot > 0 ? name.slice(0, dot) : name;
+      const ext = dot > 0 ? name.slice(dot) : "";
+      for (let i = 1; i < 1000; i++) {
+        const candidate = i === 1 ? name : `${base} (${i})${ext}`;
+        try {
+          await dir.getFileHandle(candidate);
+        } catch (e) {
+          if (e && e.name === "NotFoundError") return { handle: await dir.getFileHandle(candidate, { create: true }), name: candidate };
+          throw e;
+        }
+      }
+      throw new Error("Too many files with the same name.");
+    }
+
+    async function storeUploadedFile(file, course, category) {
+      const name = safeName(file.name);
+      if (studyFolder.status === "granted" && studyFolder.handle) {
+        const folderPath = [courseFolderName(course), safeName(category)];
+        const dir = await directoryFor(folderPath, { create: true });
+        const { handle, name: finalName } = await uniqueFileHandle(dir, name);
+        const writer = await handle.createWritable();
+        await writer.write(file);
+        await writer.close();
+        const path = [...folderPath, finalName];
+        return { id: materialFileId(path), storage: "folder", path, filename: finalName };
+      }
+      const blobId = "up_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      await idb.put("files", blobId, { blob: file, name, type: file.type || "", lastModified: file.lastModified || Date.now() });
+      return { id: blobId, storage: "browser", blobId, filename: name };
+    }
+
+    async function getMaterialFile(m) {
+      if (m.storage === "folder") {
+        if (!studyFolder.handle) throw Object.assign(new Error("Study folder not connected"), { code: "nofolder" });
+        if (studyFolder.status !== "granted") throw Object.assign(new Error("Permission needed"), { code: "permission" });
+        try {
+          const dir = await directoryFor(m.path.slice(0, -1));
+          return await (await dir.getFileHandle(m.path[m.path.length - 1])).getFile();
+        } catch (e) {
+          throw Object.assign(new Error("File missing"), { code: e && e.name === "NotFoundError" ? "missing" : "failed" });
+        }
+      }
+      if (m.storage === "browser") {
+        const record = await idb.get("files", m.blobId);
+        if (!record) throw Object.assign(new Error("File missing"), { code: "missing" });
+        return new File([record.blob], record.name, { type: record.type || "", lastModified: record.lastModified || Date.now() });
+      }
+      throw Object.assign(new Error("Not a stored file"), { code: "failed" });
+    }
+
+    async function deleteStoredFile(m) {
+      try {
+        if (m.storage === "browser") await idb.del("files", m.blobId);
+        else if (m.storage === "folder" && studyFolder.status === "granted") {
+          const dir = await directoryFor(m.path.slice(0, -1));
+          await dir.removeEntry(m.path[m.path.length - 1]);
+        }
+      } catch (e) { /* already gone */ }
+    }
+
+    const IGNORED_FILES = /^(\.|~\$|desktop\.ini$|thumbs\.db$)|\.(crswap|tmp|lnk)$/i;
+
+    // Syncs the board with the study folder: adds files copied in with Explorer and
+    // drops entries whose files were deleted there. Returns true when something changed.
+    let scanning = null;
+    async function scanStudyFolder() {
+      if (studyFolder.status !== "granted" || !studyFolder.handle) return false;
+      if (scanning) return scanning;
+      scanning = (async () => {
+        const found = [];
+        const register = async (course, category, dirPath, name, entry) => {
+          if (IGNORED_FILES.test(name) || name === FOLDER_GUIDE_NAME) return;
+          const file = await entry.getFile();
+          found.push({ course, category, path: [...dirPath, name], name, size: file.size });
+        };
+        try {
+          for (const course of COURSES) {
+            let courseDir;
+            try { courseDir = await studyFolder.handle.getDirectoryHandle(courseFolderName(course), { create: true }); }
+            catch (e) { continue; }
+            for await (const [name, entry] of courseDir.entries()) {
+              if (entry.kind === "file") {
+                await register(course, "Other", [courseFolderName(course)], name, entry);
+              } else if (entry.kind === "directory" && !name.startsWith(".")) {
+                const category = CATEGORIES.find(c => safeName(c) === name) || name;
+                for await (const [fileName, fileEntry] of entry.entries()) {
+                  if (fileEntry.kind === "file") await register(course, category, [courseFolderName(course), name], fileName, fileEntry);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) studyFolder.status = "prompt";
+          return false;
+        }
+        let changed = false;
+        const foundIds = new Set();
+        for (const f of found) {
+          const id = materialFileId(f.path);
+          foundIds.add(id);
+          const existing = state.custom.find(m => m.id === id);
+          if (existing) {
+            const size = formatBytes(f.size);
+            if (existing.size !== size || existing.category !== f.category) { existing.size = size; existing.category = f.category; changed = true; }
+            continue;
+          }
+          state.custom.push({
+            id, courseId: f.course.id, title: titleFromFilename(f.name), filename: f.name,
+            type: detectType(f.name), category: f.category, size: formatBytes(f.size),
+            storage: "folder", path: f.path, description: "", addedAt: Date.now()
+          });
+          changed = true;
+        }
+        const before = state.custom.length;
+        state.custom = state.custom.filter(m => m.storage !== "folder" || foundIds.has(m.id));
+        if (state.custom.length !== before) changed = true;
+        if (changed) saveCustom();
+        return changed;
+      })();
+      try { return await scanning; } finally { scanning = null; }
+    }
+
     /* =========================================================================
        STATE
        ========================================================================= */
@@ -2358,6 +2503,7 @@
       custom: "iut_custom_materials",
       notes: (courseId) => `iut_notes_${courseId}`,
       cheats: (courseId) => `iut_custom_cheats_${courseId}`,
+      links: (courseId) => `iut_links_${courseId}`,
       cache: (cacheKey) => `iut_ai_cache_${cacheKey}`,
       cacheMeta: (cacheKey) => `iut_ai_meta_${cacheKey}`,
       gemini: "iut_gemini_key",
@@ -2392,7 +2538,7 @@
       editingNotes: false
     };
 
-    const allMaterials = () => [...DEFAULT_MATERIALS, ...state.custom];
+    const allMaterials = () => state.custom;
     const courseById = (id) => COURSES.find(c => c.id === id) || null;
     const materialById = (id) => allMaterials().find(m => m.id === id) || null;
     const materialsFor = (courseId) => courseId === "all" ? allMaterials() : allMaterials().filter(m => m.courseId === courseId);
@@ -2422,6 +2568,7 @@
     function materialKind(m) {
       if (m.type === "pdf") return "pdf";
       if (m.type === "pptx") return "pptx";
+      if (m.type === "file") return "file";
       return "link";
     }
 
@@ -2429,7 +2576,12 @@
       const ext = extensionOf(filename);
       if (ext === "pdf") return "pdf";
       if (ext === "pptx" || ext === "ppt") return "pptx";
-      return "link";
+      return isHttpUrl(filename) ? "link" : "file";
+    }
+
+    function linksFor(courseId) {
+      const list = store.json(KEYS.links(courseId), []);
+      return Array.isArray(list) ? list.filter(l => l && l.url && l.title) : [];
     }
 
     /* Notes autosave: the course id is captured when typing starts, so switching
@@ -2626,13 +2778,20 @@
         `<span class="seg${i < lit ? " is-on" : ""}"></span>`).join("")}</span>`;
     }
 
-    function icPart(kind, extra = "") {
-      const label = kind === "pdf" ? "PDF" : kind === "pptx" ? "PPT" : "URL";
+    function icPart(kind, extra = "", fileLabel = "") {
+      const label = kind === "pdf" ? "PDF" : kind === "pptx" ? "PPT" : kind === "file" ? (fileLabel || "DOC").slice(0, 3).toUpperCase() : "URL";
       return `<span class="ic ${extra}" data-kind="${kind}" aria-hidden="true">${label}<span class="pin1"></span></span>`;
     }
 
     function kindName(kind) {
-      return kind === "pdf" ? "PDF" : kind === "pptx" ? "Slides" : "Link";
+      return kind === "pdf" ? "PDF" : kind === "pptx" ? "Slides" : kind === "file" ? "File" : "Link";
+    }
+
+    function storageLabel(m) {
+      if (m.storage === "folder") return "In your study folder";
+      if (m.storage === "browser") return "Saved in this browser";
+      if (isHttpUrl(m.filename)) return hostOf(m.filename) || "Web link";
+      return "Next to HeartAttack";
     }
 
     function timeGreeting() {
@@ -2833,6 +2992,10 @@
       const kind = materialKind(m);
       const href = resolveHref(m.filename);
       const safeTitle = escapeHtml(m.title);
+      if (isStoredFile(m)) {
+        if (kind === "pptx") return `<button type="button" class="btn btn-primary ${size}" data-action="download-material" data-id="${m.id}" aria-label="Download ${safeTitle}">${icon("download")}<span>Download</span></button>`;
+        return `<button type="button" class="btn btn-primary ${size}" data-action="open-material" data-id="${m.id}" aria-label="${label} ${safeTitle}">${icon("file")}<span>${label}</span></button>`;
+      }
       if (kind === "pdf") {
         return `<button type="button" class="btn btn-primary ${size}" data-action="open-material" data-id="${m.id}" aria-label="${label} ${safeTitle}">${icon("file")}<span>${label}</span></button>`;
       }
@@ -2858,8 +3021,12 @@
            <span class="meta-item meta-silk">${icon("file")}${prog.total} ${prog.total === 1 ? "file" : "files"}</span>
            ${course.isNew ? `<span class="tag tag-new">New course</span>` : ""}`;
       const desc = isAll
-        ? `${timeGreeting()}. ${prog.done ? `You've finished ${prog.done} of ${prog.total} files so far.` : `Nothing is marked done yet, so it's a clean board.`} Finished files light up; current flows to what you should study next.`
-        : escapeHtml(course.description);
+        ? (prog.total
+          ? `${timeGreeting()}. ${prog.done ? `You've finished ${prog.done} of ${prog.total} files so far.` : `Nothing is marked done yet, so it's a clean board.`} Finished files light up; current flows to what you should study next.`
+          : `${timeGreeting()}. Your board is empty and ready. Upload lecture slides, labs, textbooks and syllabi for your courses, and they'll show up here as parts on the board.`)
+        : (prog.total
+          ? `${prog.done} of ${prog.total} ${prog.total === 1 ? "file" : "files"} done. Finished files light up; current flows to what you should study next.`
+          : `No files yet. Upload the lecture slides, labs, textbooks and syllabus for ${escapeHtml(course.name)}, and they'll show up here as parts on the board.`);
 
       host.innerHTML = `
         <div class="board-grid">
@@ -2868,6 +3035,7 @@
             <div class="board-meta">${meta}</div>
             <p class="board-desc">${desc}</p>
             <div class="board-actions">
+              <button type="button" class="btn btn-primary" data-action="toggle-add">${icon("upload")}<span>Upload files</span></button>
               ${isAll
                 ? `<button type="button" class="btn btn-instrument" data-action="open-tutor">${icon("wave")}<span>Open study tutor</span></button>`
                 : `<button type="button" class="btn btn-instrument" data-action="course-guide">${icon("wave")}<span>${store.get(KEYS.cache("subject_" + course.id)) ? "Open course guide" : "Course study guide"}</span></button>`}
@@ -2878,10 +3046,10 @@
             ${ledStrip(prog.done, prog.total, "is-lg is-package")}
           </div>` : ""}
         </div>
-        <div class="circuit">
-          ${prog.total ? renderTrace(next) : `<div class="trace" id="trace"><span class="trace-tail" aria-hidden="true"></span></div>`}
+        ${prog.total ? `<div class="circuit">
+          ${renderTrace(next)}
           ${renderNextPart(next, prog, isAll, course)}
-        </div>`;
+        </div>` : ""}`;
     }
 
     function renderNextPart(next, prog, isAll, course) {
@@ -2970,9 +3138,10 @@
         pdf: scope.filter(m => matchesType(m, "pdf")).length,
         pptx: scope.filter(m => matchesType(m, "pptx")).length,
         lab: scope.filter(m => matchesType(m, "lab")).length,
-        link: scope.filter(m => matchesType(m, "link")).length
+        link: scope.filter(m => matchesType(m, "link")).length,
+        file: scope.filter(m => matchesType(m, "file")).length
       };
-      const defs = [["all", "All"], ["pdf", "PDFs"], ["pptx", "Slides"], ["lab", "Labs"], ["link", "Links"]];
+      const defs = [["all", "All"], ["pdf", "PDFs"], ["pptx", "Slides"], ["lab", "Labs"], ["file", "Other files"], ["link", "Links"]];
       $("#typeChips").innerHTML = defs
         .filter(([key]) => key === "all" || counts[key] > 0 || state.typeFilter === key)
         .map(([key, label]) => `<button type="button" class="chip" data-action="filter" data-type="${key}" aria-pressed="${state.typeFilter === key}">${label}<span class="chip-count">${counts[key]}</span></button>`)
@@ -2988,25 +3157,28 @@
       const course = courseById(m.courseId);
       const href = resolveHref(m.filename);
       const safeTitle = escapeHtml(m.title);
+      const stored = isStoredFile(m);
 
-      const titleEl = kind === "pdf"
+      const titleEl = stored
+        ? `<button type="button" class="part-title" data-action="${kind === "pptx" ? "download-material" : "open-material"}" data-id="${m.id}">${safeTitle}</button>`
+        : kind === "pdf"
         ? `<button type="button" class="part-title" data-action="open-material" data-id="${m.id}">${safeTitle}</button>`
         : `<a class="part-title" href="${escapeHtml(href)}" ${kind === "pptx" && !isHttpUrl(m.filename) ? "download" : `target="_blank" rel="noopener noreferrer"`}>${safeTitle}</a>`;
 
       return `<article class="part${done ? " is-done" : ""}" id="part-${m.id}" data-id="${m.id}" aria-label="${safeTitle}">
-        <div class="socket">${icPart(kind, "is-dip")}<span class="designator" aria-hidden="true">U${designator}</span></div>
+        <div class="socket">${icPart(kind, "is-dip", extensionOf(m.filename))}<span class="designator" aria-hidden="true">U${designator}</span></div>
         <div class="part-main">
           <div class="part-title-row">
             <h4 style="font:inherit;margin:0">${titleEl}</h4>
             ${isNext ? `<span class="tag tag-next"><span class="led is-amber" style="width:7px;height:7px"></span>Up next</span>` : ""}
             ${guide ? `<span class="tag tag-guide">${icon("bolt")}Guide saved</span>` : ""}
-            ${custom ? `<span class="tag tag-custom">Added by you</span>` : ""}
           </div>
           ${m.description ? `<p class="part-desc">${escapeHtml(m.description)}</p>` : ""}
           <div class="part-meta">
             ${state.courseId === "all" && course ? `<span class="course-ref">${bandDot(m.courseId)}${escapeHtml(course.name)}</span>` : ""}
-            <span>${escapeHtml(kindName(kind))}${m.size && m.size !== "Added" ? ` · <span class="mono">${escapeHtml(m.size)}</span>` : ""}</span>
-            <span class="file" title="${escapeHtml(m.filename)}">${escapeHtml(m.filename)}</span>
+            <span>${escapeHtml(kindName(kind))}${m.size && !/^(Added|Link)$/.test(m.size) ? ` · <span class="mono">${escapeHtml(m.size)}</span>` : ""}</span>
+            <span class="file" title="${escapeHtml(m.storage === "folder" && m.path ? STUDY_FOLDER_NAME + " › " + m.path.join(" › ") : m.filename)}">${escapeHtml(m.filename)}</span>
+            <span>${escapeHtml(storageLabel(m))}</span>
           </div>
         </div>
         <div class="part-side">
@@ -3016,7 +3188,9 @@
           <div class="part-actions">
             <button type="button" class="btn btn-sm btn-study" data-action="study" data-id="${m.id}" aria-label="${guide ? "Open saved study guide for" : "Create a study guide for"} ${safeTitle}">${icon("wave")}<span>${guide ? "Guide" : "Study"}</span></button>
             ${primaryOpenAction(m)}
-            ${kind === "pdf" ? `<a class="btn btn-sm btn-icon btn-quiet" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${safeTitle} in a new tab" title="Open in a new tab">${icon("external")}</a>` : `<span class="icon-slot" aria-hidden="true"></span>`}
+            ${kind === "pdf" && stored ? `<button type="button" class="btn btn-sm btn-icon btn-quiet" data-action="download-material" data-id="${m.id}" aria-label="Download ${safeTitle}" title="Download">${icon("download")}</button>`
+              : kind === "pdf" ? `<a class="btn btn-sm btn-icon btn-quiet" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${safeTitle} in a new tab" title="Open in a new tab">${icon("external")}</a>`
+              : `<span class="icon-slot" aria-hidden="true"></span>`}
             ${custom ? `<button type="button" class="btn btn-sm btn-icon btn-quiet btn-danger" data-action="delete-material" data-id="${m.id}" aria-label="Remove ${safeTitle}" title="Remove">${icon("trash")}</button>` : ""}
           </div>
         </div>
@@ -3055,12 +3229,12 @@
           <h3>${searching ? "No matching files" : filtered ? "Nothing of this type" : "No files on this board yet"}</h3>
           <p>${searching
             ? `Nothing here matches “${escapeHtml(state.query.trim())}”. Try a course name, an instructor, or part of a file name.`
-            : filtered ? "Switch the filter back to All, or add a file of this type."
-            : "Put a PDF or slides next to index.html and add it here, or paste a link to an online resource."}</p>
+            : filtered ? "Switch the filter back to All, or upload a file of this type."
+            : "Upload PDFs, slides or any study file, or drop them anywhere on this page. You can also add links to online resources."}</p>
           <div class="empty-actions">
             ${searching ? `<button type="button" class="btn" data-action="clear-search">Clear search</button>` : ""}
             ${filtered ? `<button type="button" class="btn" data-action="filter" data-type="all">Show all types</button>` : ""}
-            <button type="button" class="btn btn-primary" data-action="toggle-add">${icon("plus")}<span>Add material</span></button>
+            <button type="button" class="btn btn-primary" data-action="toggle-add">${icon("upload")}<span>Upload files</span></button>
           </div>
         </div>`;
         return;
@@ -3088,12 +3262,36 @@
        ADD MATERIAL (inline panel)
        ========================================================================= */
 
+    let pendingUploads = [];
+
+    function folderWhereText(courseId, category) {
+      const course = courseById(courseId) || COURSES[0];
+      if (studyFolder.status === "granted") {
+        return `Saved to your study folder: <span class="mono">${escapeHtml([STUDY_FOLDER_NAME, courseFolderName(course), safeName(category)].join(" › "))}</span>`;
+      }
+      if (studyFolder.status === "prompt") {
+        return `Your study folder needs permission again. It's asked for when you click Upload.`;
+      }
+      if (studyFolder.status === "none") {
+        return `Saved in this browser. <button type="button" class="link-btn" data-action="choose-folder">Choose a study folder</button> to keep files in tidy course folders on your computer instead.`;
+      }
+      return "Saved in this browser (this browser can't save to a folder on your computer).";
+    }
+
     function renderAddPanel(open) {
       const host = $("#addPanelHost");
-      if (!open) { host.innerHTML = ""; return; }
-      const defaultCourse = state.courseId !== "all" ? state.courseId : COURSES[0].id;
+      if (!open) { host.innerHTML = ""; pendingUploads = []; return; }
+      const mode = state.addMode === "link" ? "link" : "upload";
+      const defaultCourse = state.addCourse || (state.courseId !== "all" ? state.courseId : COURSES[0].id);
+      const defaultCategory = state.addCategory || CATEGORIES[0];
       host.innerHTML = `<form class="add-panel" id="addForm" novalidate aria-labelledby="addTitle">
-        <h3 id="addTitle">Add a material</h3>
+        <div class="add-head">
+          <h3 id="addTitle">${mode === "link" ? "Add a link" : "Upload files"}</h3>
+          <div class="chips" role="radiogroup" aria-label="What to add">
+            <button type="button" class="chip" role="radio" data-action="add-mode" data-mode="upload" aria-checked="${mode === "upload"}" aria-pressed="${mode === "upload"}">${icon("upload")}Files</button>
+            <button type="button" class="chip" role="radio" data-action="add-mode" data-mode="link" aria-checked="${mode === "link"}" aria-pressed="${mode === "link"}">${icon("external")}Link</button>
+          </div>
+        </div>
         <div class="form-grid">
           <div class="field">
             <label class="field-label" for="addCourse">Course</label>
@@ -3101,69 +3299,150 @@
           </div>
           <div class="field">
             <label class="field-label" for="addCategory">Category</label>
-            <select id="addCategory" class="select">${CATEGORIES.map(c => `<option>${escapeHtml(c)}</option>`).join("")}</select>
+            <select id="addCategory" class="select">${CATEGORIES.map(c => `<option${c === defaultCategory ? " selected" : ""}>${escapeHtml(c)}</option>`).join("")}</select>
           </div>
+          ${mode === "upload" ? `
+          <div class="field span-2">
+            <input type="file" id="addFiles" multiple hidden>
+            <button type="button" class="dropzone upload-zone" id="addDrop" data-action="pick-uploads">
+              ${icon("upload")}<strong>Drop files here or browse</strong><small>PDF, PowerPoint, Word, images or any study file. You can pick several at once.</small>
+            </button>
+            <ul class="upload-list" id="addFileList" role="list"></ul>
+          </div>` : `
           <div class="field span-2">
             <label class="field-label" for="addTitleInput">Title</label>
-            <input id="addTitleInput" class="input" type="text" placeholder="Lecture 5: Linked lists" required autocomplete="off">
+            <input id="addTitleInput" class="input" type="text" placeholder="e.g. Week 5 lecture recording" autocomplete="off">
           </div>
           <div class="field span-2">
-            <label class="field-label" for="addFile">File name or link</label>
-            <input id="addFile" class="input" type="text" placeholder="Lecture_05.pdf  or  https://…" required autocomplete="off" spellcheck="false">
-            <span class="field-hint">For a file, copy it into the same folder as HeartAttack (index.html) and type its exact name. <span class="detect" id="addDetect"></span></span>
+            <label class="field-label" for="addUrl">Link</label>
+            <input id="addUrl" class="input" type="url" placeholder="https://…" autocomplete="off" spellcheck="false">
           </div>
           <div class="field span-2">
             <label class="field-label" for="addDesc">Short description (optional)</label>
-            <input id="addDesc" class="input" type="text" placeholder="What's inside, in one line" autocomplete="off">
-          </div>
+            <input id="addDesc" class="input" type="text" placeholder="What's there, in one line" autocomplete="off">
+          </div>`}
         </div>
+        <p class="save-where" id="addWhere">${mode === "upload" ? folderWhereText(defaultCourse, defaultCategory) : "Links open in a new tab."}</p>
         <p class="field-error" id="addError" role="alert" hidden></p>
         <div class="form-actions">
           <button type="button" class="btn btn-quiet" data-action="toggle-add">Cancel</button>
-          <button type="submit" class="btn btn-primary">${icon("plus")}<span>Add to board</span></button>
+          <button type="submit" class="btn btn-primary" id="addSubmit">${mode === "upload" ? `${icon("upload")}<span>Upload</span>` : `${icon("plus")}<span>Add link</span>`}</button>
         </div>
       </form>`;
-      $("#addTitleInput").focus();
+      renderUploadList();
+      const first = mode === "upload" ? $("#addDrop") : $("#addTitleInput");
+      if (first) first.focus();
     }
 
-    function submitAddForm() {
-      const title = $("#addTitleInput").value.trim();
-      let filename = $("#addFile").value.trim().replace(/^["']|["']$/g, "");
-      // "www.site.com/page" typed without a scheme is a web link, not a local file.
-      if (!isHttpUrl(filename) && (/^www\./i.test(filename) || (/^[a-z0-9-]+(\.[a-z0-9-]+)+\/\S*$/i.test(filename) && !/\.(pdf|pptx?|docx?|xlsx?|txt|md|zip|png|jpe?g)$/i.test(filename)))) {
-        filename = "https://" + filename;
+    function renderUploadList() {
+      const list = $("#addFileList");
+      if (!list) return;
+      list.innerHTML = pendingUploads.map((f, i) => `<li class="upload-item">
+        ${icPart(detectType(f.name) === "link" ? "file" : detectType(f.name), "", extensionOf(f.name))}
+        <span class="upload-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}<span class="file-chip-size">${formatBytes(f.size)}</span></span>
+        <button type="button" class="btn btn-sm btn-icon btn-quiet" data-action="remove-pending" data-index="${i}" aria-label="Remove ${escapeHtml(f.name)}">${icon("close")}</button>
+      </li>`).join("");
+      const submit = $("#addSubmit");
+      if (submit && state.addMode !== "link") {
+        submit.innerHTML = `${icon("upload")}<span>${pendingUploads.length > 1 ? `Upload ${pendingUploads.length} files` : "Upload"}</span>`;
       }
+    }
+
+    function addPendingUploads(files) {
+      const incoming = [...(files || [])].filter(f => f && f.size >= 0);
+      for (const f of incoming) {
+        if (!pendingUploads.some(p => p.name === f.name && p.size === f.size && p.lastModified === f.lastModified)) pendingUploads.push(f);
+      }
+      renderUploadList();
       const err = $("#addError");
-      if (!title || !filename) {
-        err.textContent = !title ? "Give the material a title." : "Enter the file name or a link.";
-        err.hidden = false;
-        (!title ? $("#addTitleInput") : $("#addFile")).focus();
+      if (err) err.hidden = true;
+    }
+
+    function openUploadPanel(files) {
+      state.addOpen = true;
+      state.addMode = "upload";
+      if (state.tab !== "materials") selectTab("materials");
+      renderAddPanel(true);
+      if (files && files.length) addPendingUploads(files);
+      $("#addPanelHost").scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    }
+
+    async function submitAddForm() {
+      const err = $("#addError");
+      const courseId = $("#addCourse").value;
+      const category = $("#addCategory").value;
+      const course = courseById(courseId);
+      state.addCourse = courseId;
+      state.addCategory = category;
+
+      if (state.addMode === "link") {
+        const title = $("#addTitleInput").value.trim();
+        let url = $("#addUrl").value.trim();
+        if (url && !isHttpUrl(url) && /^[\w-]+(\.[\w-]+)+/.test(url)) url = "https://" + url;
+        if (!title || !isHttpUrl(url)) {
+          err.textContent = !title ? "Give the link a title." : "Enter a web address that starts with https://";
+          err.hidden = false;
+          (!title ? $("#addTitleInput") : $("#addUrl")).focus();
+          return;
+        }
+        const material = { id: "link_" + Date.now().toString(36), courseId, title, filename: url, type: "link", category, size: "Link", storage: "link", description: $("#addDesc").value.trim(), addedAt: Date.now() };
+        state.custom.push(material);
+        if (!saveCustom()) { state.custom.pop(); err.textContent = "Couldn't save: this browser's storage is full or blocked."; err.hidden = false; return; }
+        state.addOpen = false;
+        state.typeFilter = "all";
+        if (state.courseId !== "all") state.courseId = courseId;
+        renderAll();
+        toast(`Added “${title}” to ${course.name}.`);
+        flashPart(material.id);
         return;
       }
-      const material = {
-        id: "custom_" + Date.now().toString(36),
-        courseId: $("#addCourse").value,
-        title,
-        filename,
-        type: detectType(filename),
-        category: $("#addCategory").value,
-        size: isHttpUrl(filename) ? "Link" : "",
-        description: $("#addDesc").value.trim()
-      };
-      state.custom.push(material);
-      if (!saveCustom()) {
-        state.custom.pop();
-        err.textContent = "Couldn't save: this browser's storage is full or blocked.";
+
+      if (!pendingUploads.length) {
+        err.textContent = "Choose at least one file to upload.";
+        err.hidden = false;
+        return;
+      }
+      // Asking for folder access must happen first, while the click still counts.
+      if (studyFolder.status === "prompt") await allowStudyFolder();
+
+      const submit = $("#addSubmit");
+      submit.disabled = true;
+      submit.innerHTML = `<span>Saving…</span>`;
+      const files = pendingUploads.slice();
+      const added = [];
+      const failed = [];
+      for (const file of files) {
+        try {
+          const stored = await storeUploadedFile(file, course, category);
+          const material = {
+            id: stored.id, courseId, title: titleFromFilename(stored.filename), filename: stored.filename,
+            type: detectType(stored.filename), category, size: formatBytes(file.size),
+            storage: stored.storage, path: stored.path, blobId: stored.blobId, description: "", addedAt: Date.now()
+          };
+          state.custom = state.custom.filter(m => m.id !== material.id);
+          state.custom.push(material);
+          added.push(material);
+        } catch (e) {
+          failed.push({ file, error: e });
+        }
+      }
+      const saved = saveCustom();
+      pendingUploads = [];
+      if (!added.length) {
+        submit.disabled = false;
+        renderUploadList();
+        const quota = failed.some(f => f.error && f.error.name === "QuotaExceededError");
+        err.textContent = quota ? "There isn't enough space to save these files. Free up space or choose a study folder." : "Those files couldn't be saved. Please try again.";
         err.hidden = false;
         return;
       }
       state.addOpen = false;
       state.typeFilter = "all";
-      if (state.courseId !== "all" && state.courseId !== material.courseId) state.courseId = material.courseId;
+      if (state.courseId !== "all") state.courseId = courseId;
       renderAll();
-      const course = courseById(material.courseId);
-      toast(`Added “${title}” to ${course ? course.name : "your board"}.`);
-      flashPart(material.id);
+      const where = added[0].storage === "folder" ? "your study folder" : "this browser";
+      toast(`${added.length === 1 ? `Uploaded “${added[0].title}”` : `Uploaded ${added.length} files`} to ${course.name}, saved in ${where}.${failed.length ? ` ${failed.length} couldn't be saved.` : ""}${saved ? "" : " (The file list couldn't be saved; storage is full.)"}`, { type: failed.length || !saved ? "warn" : "ok", duration: 6000 });
+      flashPart(added[0].id);
     }
 
     function flashPart(id) {
@@ -3181,7 +3460,8 @@
       const [removed] = state.custom.splice(index, 1);
       saveCustom();
       renderAll();
-      toast(`Removed “${removed.title}”.`, {
+      const note = removed.storage === "folder" ? " Its file will be deleted from your study folder." : "";
+      toast(`Removed “${removed.title}”.${note}`, {
         actionLabel: "Undo",
         duration: 6500,
         onAction: () => {
@@ -3195,6 +3475,7 @@
           if (state.completed[removed.id]) { delete state.completed[removed.id]; saveCompleted(); }
           store.remove(KEYS.cache("mat_" + removed.id));
           store.remove(KEYS.cacheMeta("mat_" + removed.id));
+          if (isStoredFile(removed)) deleteStoredFile(removed);
         }
       });
     }
@@ -3410,7 +3691,7 @@
     function sheetRows(courseId) {
       const cheats = cheatsFor(courseId);
       if (!cheats.length) {
-        return `<div class="ref-row"><div class="ref-label">No entries yet</div><div class="field-hint">Add a formula below, or save the formulas from a tutor study guide.</div><span></span></div>`;
+        return `<div class="ref-row"><div class="ref-label">No entries yet</div><div class="field-hint">Add a formula or rule below, or save the formulas from a tutor study guide.</div><span></span></div>`;
       }
       return cheats.map(c => `<div class="ref-row">
         <div class="ref-label">${escapeHtml(c.label)}${c.isDefault ? "" : `<br><span class="tag tag-custom">Added by you</span>`}</div>
@@ -3422,12 +3703,33 @@
       </div>`).join("");
     }
 
-    function linkRows(tools) {
-      return tools.map(t => `<a class="link-row" href="${escapeHtml(t.url)}" target="_blank" rel="noopener noreferrer">
-        <span class="link-title">${escapeHtml(t.title)}</span>
-        <span class="link-host">${escapeHtml(hostOf(t.url))}${icon("external")}</span>
-        <span class="link-desc">${escapeHtml(t.desc)}</span>
-      </a>`).join("");
+    function linkRows(courseId, links) {
+      return links.map(l => `<div class="link-row">
+        <a class="link-main" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">
+          <span class="link-title">${escapeHtml(l.title)}</span>
+          <span class="link-host">${escapeHtml(hostOf(l.url))}${icon("external")}</span>
+        </a>
+        <button type="button" class="btn btn-sm btn-icon btn-quiet btn-danger" data-action="delete-link" data-course="${courseId}" data-lid="${escapeHtml(l.id)}" aria-label="Delete ${escapeHtml(l.title)}" title="Delete">${icon("trash")}</button>
+      </div>`).join("");
+    }
+
+    function deleteLink(courseId, lid) {
+      const list = linksFor(courseId);
+      const index = list.findIndex(l => l.id === lid);
+      if (index === -1) return;
+      const [removed] = list.splice(index, 1);
+      store.setJson(KEYS.links(courseId), list);
+      renderReference();
+      toast(`Deleted “${removed.title}”.`, {
+        actionLabel: "Undo",
+        duration: 6500,
+        onAction: () => {
+          const now = linksFor(courseId);
+          now.splice(Math.min(index, now.length), 0, removed);
+          store.setJson(KEYS.links(courseId), now);
+          if (state.tab === "reference") renderReference();
+        }
+      });
     }
 
     function renderReference() {
@@ -3463,15 +3765,53 @@
             <p class="field-error" id="fError" role="alert" hidden style="grid-column:1/-1"></p>
           </form>
         </section>
-        <div class="links">
+        <section class="panel" aria-labelledby="linksTitle">
+          <div class="panel-head">
+            <div>
+              <h2 id="linksTitle">Useful links</h2>
+              <div class="sub">${escapeHtml(isAll ? "All courses" : course.name)} · simulators, dictionaries, videos, anything you use</div>
+            </div>
+          </div>
           ${isAll
-            ? `<section class="panel" aria-labelledby="linksCourse"><div class="panel-head"><h2 id="linksCourse">Course links</h2></div><div class="link-list">${linkRows(COURSES.flatMap(c => c.tools || []))}</div></section>`
-            : `<section class="panel" aria-labelledby="linksCourse"><div class="panel-head"><div><h2 id="linksCourse">Picked for this course</h2><div class="sub">${escapeHtml(course.name)}</div></div></div><div class="link-list">${(course.tools || []).length ? linkRows(course.tools) : `<p class="field-hint" style="padding:14px 18px">No links yet.</p>`}</div></section>`}
-          <section class="panel" aria-labelledby="linksGeneral"><div class="panel-head"><h2 id="linksGeneral">Always handy</h2></div><div class="link-list">${linkRows(GENERAL_TOOLS)}</div></section>
-        </div>
+            ? COURSES.map(c => { const l = linksFor(c.id); return l.length ? `<div class="sheet-course">${resistorSvg(c.id)}<h3>${escapeHtml(c.name)}</h3></div><div class="link-list">${linkRows(c.id, l)}</div>` : ""; }).join("") || `<p class="field-hint" style="padding:14px 18px">No links yet. Add the websites you use for your courses below.</p>`
+            : (linksFor(course.id).length ? `<div class="link-list">${linkRows(course.id, linksFor(course.id))}</div>` : `<p class="field-hint" style="padding:14px 18px">No links yet. Add the websites you use for this course below.</p>`)}
+          <form class="ref-form link-form" id="linkForm" novalidate aria-label="Add a useful link">
+            ${isAll ? `<div class="kind-row"><label class="sr-only" for="lCourse">Course</label><select id="lCourse" class="select" style="width:auto;min-width:200px">${COURSES.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("")}</select></div>` : ""}
+            <div class="field"><label class="sr-only" for="lTitle">Link title</label><input id="lTitle" class="input" type="text" placeholder="Title, e.g. Falstad circuit simulator" autocomplete="off"></div>
+            <div class="field"><label class="sr-only" for="lUrl">Web address</label><input id="lUrl" class="input" type="url" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
+            <button type="submit" class="btn btn-primary">${icon("plus")}<span>Add link</span></button>
+            <p class="field-error" id="lError" role="alert" hidden style="grid-column:1/-1"></p>
+          </form>
+        </section>
       </div>`;
       host.dataset.kind = "math";
       bindFormulaForm();
+      bindLinkForm();
+    }
+
+    function bindLinkForm() {
+      const form = $("#linkForm");
+      if (!form) return;
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const title = $("#lTitle").value.trim();
+        let url = $("#lUrl").value.trim();
+        if (url && !isHttpUrl(url) && /^[\w-]+(\.[\w-]+)+/.test(url)) url = "https://" + url;
+        const err = $("#lError");
+        if (!title || !isHttpUrl(url)) {
+          err.textContent = !title ? "Give the link a title." : "Enter a web address that starts with https://";
+          err.hidden = false;
+          (!title ? $("#lTitle") : $("#lUrl")).focus();
+          return;
+        }
+        const courseId = state.courseId === "all" ? $("#lCourse").value : state.courseId;
+        const list = linksFor(courseId);
+        list.push({ id: "l_" + Date.now().toString(36), title, url });
+        if (!store.setJson(KEYS.links(courseId), list)) { err.textContent = "Couldn't save: browser storage is full or blocked."; err.hidden = false; return; }
+        renderReference();
+        toast(`Added “${title}”.`);
+        const t = $("#lTitle"); if (t) t.focus();
+      });
     }
 
     function bindFormulaForm() {
@@ -3537,19 +3877,74 @@
        ========================================================================= */
 
     let viewerMaterialId = null;
-    function openMaterial(id) {
+    let viewerObjectUrl = null;
+
+    function showViewer(m, url) {
+      viewerMaterialId = m.id;
+      const kind = materialKind(m);
+      const ic = $("#viewer .viewer-head .ic");
+      if (ic) ic.innerHTML = `${kind === "pdf" ? "PDF" : (extensionOf(m.filename) || "DOC").slice(0, 3).toUpperCase()}<span class="pin1"></span>`;
+      $("#viewerTitle").textContent = m.title;
+      $("#viewerExternal").href = url;
+      $("#viewerFrame").src = url;
+      showDialog($("#viewer"));
+    }
+
+    function fileProblem(e, m) {
+      const code = e && e.code;
+      if (code === "permission" || code === "nofolder") {
+        toast("HeartAttack needs permission to open your study folder.", { type: "warn", actionLabel: "Allow access", onAction: () => allowStudyFolder(), duration: 9000 });
+      } else if (code === "missing") {
+        toast(m.storage === "folder" ? `“${m.title}” isn't in your study folder anymore, so it was removed from the board.` : `“${m.title}” is no longer saved in this browser.`, { type: "warn", duration: 7000 });
+        if (m.storage === "folder") scanStudyFolder().then(changed => changed && renderAll());
+      } else {
+        toast(`“${m.title}” couldn't be opened.`, { type: "error" });
+      }
+    }
+
+    // Images, text and PDFs show in the viewer; other files download.
+    const VIEWABLE = /^(pdf|png|jpe?g|gif|webp|svg|txt|md)$/i;
+
+    async function openMaterial(id) {
       const m = materialById(id);
       if (!m) return;
-      const href = resolveHref(m.filename);
-      if (materialKind(m) !== "pdf" || isNarrow()) {
-        window.open(href, "_blank", "noopener");
+      if (!isStoredFile(m)) {
+        const href = resolveHref(m.filename);
+        if (materialKind(m) !== "pdf" || isNarrow()) { window.open(href, "_blank", "noopener"); return; }
+        showViewer(m, href);
         return;
       }
-      viewerMaterialId = id;
-      $("#viewerTitle").textContent = m.title;
-      $("#viewerExternal").href = href;
-      $("#viewerFrame").src = href;
-      showDialog($("#viewer"));
+      if (!VIEWABLE.test(extensionOf(m.filename))) { downloadMaterial(id); return; }
+      try {
+        if (m.storage === "folder" && studyFolder.status !== "granted" && !(await allowStudyFolder())) throw Object.assign(new Error("permission"), { code: "permission" });
+        const file = await getMaterialFile(m);
+        if (viewerObjectUrl) URL.revokeObjectURL(viewerObjectUrl);
+        const typed = file.type ? file : new File([file], file.name, { type: extensionOf(file.name) === "pdf" ? "application/pdf" : "text/plain" });
+        viewerObjectUrl = URL.createObjectURL(typed);
+        showViewer(m, viewerObjectUrl);
+      } catch (e) {
+        fileProblem(e, m);
+      }
+    }
+
+    async function downloadMaterial(id) {
+      const m = materialById(id);
+      if (!m) return;
+      if (!isStoredFile(m)) { window.open(resolveHref(m.filename), "_blank", "noopener"); return; }
+      try {
+        if (m.storage === "folder" && studyFolder.status !== "granted" && !(await allowStudyFolder())) throw Object.assign(new Error("permission"), { code: "permission" });
+        const file = await getMaterialFile(m);
+        const url = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = m.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch (e) {
+        fileProblem(e, m);
+      }
     }
 
     function closeViewer() {
@@ -3651,7 +4046,11 @@
         regen.hidden = !cached;
       }
       const hint = $("#tMaterialHint");
-      if (sel.kind === "material") {
+      if (sel.kind === "material" && isStoredFile(sel.material)) {
+        hint.textContent = sel.material.storage === "folder" && studyFolder.status !== "granted"
+          ? "This file is in your study folder. HeartAttack will ask for permission to read it."
+          : "The tutor reads this file's text (long books are sampled across chapters).";
+      } else if (sel.kind === "material") {
         const k = materialKind(sel.material);
         hint.textContent = k === "link"
           ? "Links can't be read, so the guide uses the title and description."
@@ -3774,7 +4173,6 @@
       let p = `You are an expert university tutor at Inha University in Tashkent writing a study guide for a student.
 
 Course: ${course.name} (${course.code}), taught by ${course.instructor}.
-Course scope: ${course.description}
 `;
       if (material) p += `\nMaterial: ${material.title}\nCategory: ${material.category}\nFile: ${material.filename}\nDescription: ${material.description || "none"}\n`;
       if (uploadName) p += `\nThe student uploaded their own document: ${uploadName}\n`;
@@ -3783,6 +4181,7 @@ Course scope: ${course.description}
       } else if (material || uploadName) {
         p += `\nThe document text could not be read (status: ${readStatus}). Base the guide on the course scope and the material title and description. Do not claim to quote specific pages.\n`;
       }
+      if (!material && !uploadName) p += `\nNo course file was provided. Build the overview from what this course (by its title) typically covers at university level.\n`;
       if (focus) p += `\nStudent's focus: ${focus}\n`;
       p += `
 Write the guide in English using Markdown, with exactly these sections:
@@ -3815,6 +4214,8 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       failed: "the course outline (the file's text couldn't be extracted)",
       empty: "the course outline (the file has no selectable text)",
       unsupported: "the title and description",
+      permission: "the course name (HeartAttack needs permission to your study folder)",
+      missing: "the course name (the file is no longer saved)",
       none: "the course outline"
     };
 
@@ -3846,6 +4247,10 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       let doc = { text: "", status: "none", pages: 0 };
       try {
         if (sel.kind === "upload") doc = await readDocument(tutor.upload);
+        else if (sel.kind === "material" && isStoredFile(sel.material)) {
+          try { doc = await readDocument(await getMaterialFile(sel.material)); }
+          catch (e) { doc = { text: "", status: e && e.code === "permission" ? "permission" : e && e.code === "missing" ? "missing" : "failed", pages: 0 }; }
+        }
         else if (sel.kind === "material" && materialKind(sel.material) !== "link") doc = await readDocument(sel.material.filename);
         else if (sel.kind === "material") doc = { text: "", status: "unsupported", pages: 0 };
       } catch (e) { doc = { text: "", status: "failed", pages: 0 }; }
@@ -4062,7 +4467,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
         messages = [...tutor.history, { role: "user", content: q }];
       } else {
         const course = courseById($("#tCourse").value) || COURSES[0];
-        messages = [{ role: "user", content: `You are a friendly, precise tutor for the university course "${course.name}" (${course.code}) at Inha University in Tashkent. Course scope: ${course.description}\nAnswer clearly using Markdown, LaTeX ($...$, $$...$$) for math, and fenced code blocks for code.\n\nStudent question: ${q}` }];
+        messages = [{ role: "user", content: `You are a friendly, precise tutor for the university course "${course.name}" (${course.code}) at Inha University in Tashkent. Answer clearly using Markdown, LaTeX ($...$, $$...$$) for math, and fenced code blocks for code.\n\nStudent question: ${q}` }];
       }
 
       tutor.asking = true;
@@ -4256,6 +4661,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       $$('[data-action="reveal"]').forEach(b => { b.innerHTML = icon("eye"); b.setAttribute("aria-label", "Show key"); });
       $("#kModel").innerHTML = modelOptions(store.get(KEYS.model, "gemini-flash-latest"));
       refreshStorageInfo();
+      renderFolderSettings();
       $("#storageWarning").innerHTML = store.persistent ? "" : `<div class="callout"><span class="led is-red" aria-hidden="true"></span><div><strong>This browser is blocking storage.</strong> Progress, notes and keys will be forgotten when the tab closes. Opening HeartAttack in a normal (non-private) window usually fixes this.</div></div>`;
       showDialog($("#settings"));
     }
@@ -4430,6 +4836,38 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       if (focus) $("#tab-" + tab).focus();
     }
 
+    function renderFolderNotice() {
+      const host = $("#folderNotice");
+      if (!host) return;
+      const needs = studyFolder.status === "prompt" && state.custom.some(m => m.storage === "folder");
+      host.innerHTML = needs ? `<div class="callout folder-notice" role="status">
+        <span class="led is-amber is-blink" aria-hidden="true"></span>
+        <div><strong>Allow access to your study folder.</strong> Your browser asks again after a restart before HeartAttack can open your files.</div>
+        <button type="button" class="btn btn-sm btn-primary" data-action="allow-folder">Allow access</button>
+      </div>` : "";
+    }
+
+    function renderFolderSettings() {
+      const info = $("#folderInfo");
+      const actions = $("#folderActions");
+      if (!info || !actions) return;
+      const count = state.custom.filter(m => m.storage === "folder").length;
+      const inBrowser = state.custom.filter(m => m.storage === "browser").length;
+      if (studyFolder.status === "unsupported") {
+        info.textContent = `This browser can't save to a folder on your computer (use Chrome or Edge on a computer for that). Uploads are kept in this browser${inBrowser ? `: ${inBrowser} ${inBrowser === 1 ? "file" : "files"}` : ""}.`;
+        actions.innerHTML = "";
+      } else if (studyFolder.status === "none") {
+        info.textContent = `Not chosen yet. Uploads are kept in this browser${inBrowser ? ` (${inBrowser} ${inBrowser === 1 ? "file" : "files"})` : ""}. Choose a folder, for example in Documents, and HeartAttack creates “${STUDY_FOLDER_NAME}” with a folder for each course.`;
+        actions.innerHTML = `<button type="button" class="btn btn-sm btn-primary" data-action="choose-folder">${icon("upload")}<span>Choose folder</span></button>`;
+      } else if (studyFolder.status === "prompt") {
+        info.textContent = `“${studyFolder.handle ? studyFolder.handle.name : STUDY_FOLDER_NAME}” needs permission again after a browser restart.`;
+        actions.innerHTML = `<button type="button" class="btn btn-sm btn-primary" data-action="allow-folder">Allow access</button><button type="button" class="btn btn-sm" data-action="choose-folder">Change</button>`;
+      } else {
+        info.textContent = `Using “${studyFolder.handle.name}”: ${count} ${count === 1 ? "file" : "files"}. Files you copy into its course folders show up automatically.`;
+        actions.innerHTML = `<button type="button" class="btn btn-sm" data-action="rescan-folder">${icon("refresh")}<span>Rescan</span></button><button type="button" class="btn btn-sm" data-action="choose-folder">Change</button>`;
+      }
+    }
+
     function renderAll() {
       renderCourseList();
       renderBoard();
@@ -4439,6 +4877,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       if (state.tab === "notes") renderNotes();
       if (state.tab === "reference") renderReference();
       renderOverallMeter();
+      renderFolderNotice();
       document.title = state.courseId === "all" ? "HeartAttack 2026" : `${courseById(state.courseId).name} · HeartAttack 2026`;
     }
 
@@ -4457,8 +4896,25 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
           case "filter": state.typeFilter = el.dataset.type; renderParts(); break;
           case "toggle-done": toggleDone(id); break;
           case "open-material": openMaterial(id); break;
+          case "download-material": downloadMaterial(id); break;
+          case "pick-uploads": { const input = $("#addFiles"); if (input) input.click(); break; }
+          case "remove-pending": pendingUploads.splice(Number(el.dataset.index), 1); renderUploadList(); break;
+          case "add-mode": state.addMode = el.dataset.mode; state.addCourse = ($("#addCourse") || {}).value; state.addCategory = ($("#addCategory") || {}).value; renderAddPanel(true); break;
+          case "choose-folder": await chooseStudyFolder(); if (state.addOpen) renderAddPanel(true); break;
+          case "allow-folder": await allowStudyFolder(); if (state.addOpen) renderAddPanel(true); break;
+          case "rescan-folder": {
+            el.disabled = true;
+            const changed = await scanStudyFolder();
+            el.disabled = false;
+            renderAll();
+            renderFolderSettings();
+            toast(changed ? "Study folder rescanned: the board is up to date." : "Study folder rescanned: nothing new.");
+            break;
+          }
+          case "delete-link": deleteLink(el.dataset.course, el.dataset.lid); break;
           case "study": {
             const m = materialById(id);
+            if (m && m.storage === "folder" && studyFolder.status === "prompt" && !hasSavedGuide(m.id)) await allowStudyFolder();
             if (m) openTutor({ courseId: m.courseId, materialId: m.id, autoGenerate: true, focusText: "" });
             break;
           }
@@ -4474,6 +4930,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
           case "delete-material": deleteMaterial(id); break;
           case "toggle-add":
             state.addOpen = !state.addOpen;
+            if (state.addOpen) state.addMode = "upload";
             if (state.addOpen && state.tab !== "materials") selectTab("materials");
             renderAddPanel(state.addOpen);
             if (state.addOpen) $("#addPanelHost").scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
@@ -4574,13 +5031,16 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
           sendFollowUp(q);
         }
       });
-      document.addEventListener("input", (e) => {
-        if (e.target.id === "addFile") {
-          const v = e.target.value.trim();
-          const t = v ? detectType(v) : "";
-          $("#addDetect").textContent = t ? `Detected: ${t === "pdf" ? "PDF (opens in the viewer)" : t === "pptx" ? "Slides (downloads)" : isHttpUrl(v) ? "Web link" : "File (opens in a new tab)"}` : "";
+      document.addEventListener("change", (e) => {
+        if (e.target.id === "addFiles") { addPendingUploads(e.target.files); e.target.value = ""; }
+        if (e.target.id === "addCourse" || e.target.id === "addCategory") {
+          const where = $("#addWhere");
+          if (where && state.addMode !== "link") where.innerHTML = folderWhereText($("#addCourse").value, $("#addCategory").value);
         }
-        if (e.target.id === "addTitleInput" || e.target.id === "addFile") { const err = $("#addError"); if (err) err.hidden = true; }
+      });
+      document.addEventListener("input", (e) => {
+        if (e.target.id === "addTitleInput" || e.target.id === "addUrl") { const err = $("#addError"); if (err) err.hidden = true; }
+        if (e.target.id === "lTitle" || e.target.id === "lUrl") { const err = $("#lError"); if (err) err.hidden = true; }
         if (e.target.id === "fLabel" || e.target.id === "fValue") { const err = $("#fError"); if (err) err.hidden = true; }
         if (e.target.id === "tFocus") updateTutorControls();
         if (e.target.id === "tAsk") autoGrow(e.target);
@@ -4668,8 +5128,11 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       window.addEventListener("drop", (e) => {
         if (!e.dataTransfer || !e.dataTransfer.files.length) return;
         e.preventDefault();
-        if ($("#tutor").open) { if (!$("#tutorSetup").contains(e.target)) setUpload(e.dataTransfer.files[0]); }
-        else toast("To study a file with the tutor, open the tutor and drop it there.", { type: "warn" });
+        if ($("#tutor").open) { if (!$("#tutorSetup").contains(e.target)) setUpload(e.dataTransfer.files[0]); return; }
+        if ($("dialog[open]")) return;
+        // Dropping files on the page opens the upload panel with them ready to go.
+        if (state.addOpen && state.addMode !== "link") addPendingUploads(e.dataTransfer.files);
+        else openUploadPanel(e.dataTransfer.files);
       });
 
       // Keep two open tabs of HeartAttack from overwriting each other's progress.
@@ -4682,6 +5145,8 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
         } else if (e.key === KEYS.custom) {
           state.custom = loadCustomMaterials();
           renderAll();
+        } else if (e.key && e.key.startsWith("iut_links_") && state.tab === "reference") {
+          renderReference();
         } else if (e.key === KEYS.notes(state.courseId) && state.tab === "notes" && !state.editingNotes) {
           renderNotes();
         }
@@ -4689,6 +5154,13 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       document.addEventListener("fullscreenchange", () => {
         const b = $('[data-action="viewer-fullscreen"]');
         if (b) b.setAttribute("aria-label", document.fullscreenElement ? "Exit full screen" : "Full screen");
+      });
+
+      let lastFocusScan = 0;
+      window.addEventListener("focus", async () => {
+        if (studyFolder.status !== "granted" || Date.now() - lastFocusScan < 4000) return;
+        lastFocusScan = Date.now();
+        if (await scanStudyFolder()) renderAll();
       });
 
       // Selection → Ask tutor
@@ -4716,6 +5188,10 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       renderUploadSlot();
       bindEvents();
       renderAll();
+      loadStudyFolder().then(async () => {
+        if (studyFolder.status === "granted" && await scanStudyFolder()) renderAll();
+        else renderFolderNotice();
+      });
       if (!store.persistent) {
         toast("This browser is blocking storage, so progress and notes reset when the tab closes.", { type: "warn", duration: 9000 });
       }

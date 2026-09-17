@@ -7,29 +7,33 @@ A study desk for our Fall 2026 courses at Inha University in Tashkent. All your 
 
 ## What it does
 
-- **Course board.** Pick a course to see its files as parts on a breadboard. Mark a file done and its LED lights up. The amber pad shows what to study next.
-- **Study tutor (AI).** Turns a lecture, lab or textbook into a study guide with a concept diagram, the key formulas (LaTeX), a four-phase learning path and a self-test. You can ask follow-up questions. Guides are saved in your browser, so reopening one costs nothing.
-- **Notes.** A notebook for each course that supports Markdown, math (`$E = mc^2$`) and code blocks.
-- **Formulas & links.** A formula sheet for each course that you can add to (the tutor can fill it for you), plus useful links.
+- **Course board.** Your 7 Fall 2026 courses start empty. Upload each course's files and they appear as parts on a breadboard. Mark a file done and its LED lights up; the amber pad shows what to study next.
+- **Your own files.** Upload PDFs, slides, Word files, images or anything else, or add links. Drop files anywhere on the page to upload them.
+- **Study tutor (AI).** Turns any uploaded file into a study guide with a concept diagram, the key formulas (LaTeX), a four-phase learning path and a self-test. You can ask follow-up questions, and saved guides reopen for free.
+- **Notes, formulas and links.** Each course gets a notebook (Markdown, math, code), a formula sheet and a list of useful links, all written by you.
 - **Day and night themes.** Works on phones too.
 
-The whole app is one file, `index.html`. There's nothing to install and no account to create. A tiny optional server (`relay/server.js`) hosts it online and makes Ollama API keys work.
+The whole app is one file, `index.html`. A tiny optional server (`relay/server.js`) hosts it online and makes Ollama API keys work.
 
 ## Getting started
 
-1. Download this repo: **Code → Download ZIP** (or `git clone https://github.com/Ulugbek220907/HeartAttack.git`).
-2. Copy your course files into the same folder as `index.html`. The PDFs and slides aren't included here because they belong to our instructors and publishers. Keep the file names exactly as below and the board picks them up automatically:
+Open HeartAttack from its website (see [Put it online](#put-it-online-render-free)), or download this repo and double-click **`run_heartattack.bat`** (or open `index.html` in Chrome or Edge).
 
-   | Course | Files |
-   |---|---|
-   | Circuit and Lab | `CL2026F00 (1).pdf`, `CL2026F01 (1).pdf` |
-   | Engineering Mathematics | `D.Zill-A First Course in Differential Equations with Modeling Applications-11th ed (1) (1).pdf` |
-   | Linear Algebra | `Linear Algebra and Its Aplications.pdf` |
-   | Application Programming in Java | `SOC2030 APJ syllabus2026.pdf`, `Java_1.pdf`, `Java_1_2 Java basic.pdf`, `Java_2_1_2_26.pdf`, `01 Lab_Assignment 2026 (1).pdf`, `02 Lab_Assignment 2026.pdf` |
-   | Data Structure | `DataStructuresUsingC (1).pdf`, `Data Structures.pptx`, `03 -Analyzing Space Complexity.pptx`, `04 -Searching Techniques.pptx`, `Presentation1.pptx` |
+### Where your files are kept
 
-   Other files can be added with **Add material** (a file name in this folder, or any web link).
-3. Double-click **`run_heartattack.bat`** (Windows), or just open `index.html` in Chrome, Edge or Firefox.
+Open **Settings → Study folder → Choose folder** and pick a place on your computer, for example **Documents**. HeartAttack creates a tidy folder there:
+
+```
+HeartAttack 2026├── README - how this folder works.txt
+├── Application Programming in Java│   ├── Lectures & Slides│   ├── Labs & Assignments│   ├── Textbooks & Handbooks│   └── Syllabi & Information├── Circuit and Lab└── … one folder per course
+```
+
+- Files you upload are saved into the right course and category folder.
+- Files you copy into these folders yourself show up on the board automatically.
+- Removing a file in HeartAttack also deletes it from the folder (you get a few seconds to undo).
+- After restarting the browser, click **Allow access** once so HeartAttack can open the folder again.
+
+Study folders work in **Chrome and Edge on a computer**. On phones and in other browsers, uploads are saved inside the browser instead.
 
 ## Free AI setup (pick at least one)
 
@@ -62,6 +66,6 @@ You can also run it on your own computer with Node.js 18+: `npm start`, then ope
 
 ## Good to know
 
-- **Your data stays in your browser.** Progress, notes, formulas, saved guides and keys live in the browser's local storage, on each device separately. Nothing is saved on the server, and every classmate has their own. The website and a copy opened from a folder keep separate data.
-- **Opening the file straight from the folder:** browsers don't let a page read other local files, so the tutor can't open your course PDFs by itself. When a guide says it only saw the course outline, drop the file into **Use your own file** in the tutor to get a guide built from the actual pages.
+- **Your data stays with you.** Progress, notes, formulas, links, saved guides and API keys live in your browser, on each device separately. Pushing updates to the website doesn't erase them. Every classmate has their own, and the website and a copy opened from a folder keep separate data.
+- **Everything is private.** Uploaded files stay in your study folder or your browser; nothing is uploaded to the website's server.
 - **Keyboard:** `/` searches, `Esc` closes dialogs, `E` starts writing in Notes, and `Enter` sends a question to the tutor.
