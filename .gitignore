@@ -1,0 +1,19 @@
+# Course files belong to instructors and publishers; everyone uses their own copies.
+*.pdf
+*.ppt
+*.pptx
+*.doc
+*.docx
+
+# Private: old backup (contains retired keys), design notes, local tooling
+index.original.html
+PRODUCT.md
+DESIGN.md
+.impeccable/
+.claude/
+
+# OS / editor clutter
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
