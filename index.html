@@ -395,6 +395,8 @@
     .ic[data-kind="pdf"] { --ic-dot: var(--band-2); }
     .ic[data-kind="pptx"] { --ic-dot: var(--band-3); }
     .ic[data-kind="link"] { --ic-dot: var(--band-6); }
+    .ic[data-kind="image"] { --ic-dot: var(--band-5); }
+    .ic[data-kind="note"] { --ic-dot: var(--band-4); }
 
     .tag {
       display: inline-flex; align-items: center; gap: 5px;
@@ -1003,6 +1005,9 @@
     .viewer-head .btn { --btn-bg: var(--faceplate-2); --btn-ink: var(--faceplate-ink); --btn-border: oklch(34% 0.012 250); box-shadow: none; }
     .viewer-head .btn:hover { background: oklch(32% 0.012 250); }
     .viewer iframe { flex: 1; width: 100%; border: 0; background: oklch(40% 0.005 250); }
+    .viewer-reader { flex: 1; overflow: auto; background: var(--board); padding: 28px; display: grid; justify-items: center; place-content: safe center; }
+    .viewer-reader .prose { max-width: 72ch; width: 100%; }
+    .viewer-image { max-width: 100%; height: auto; border-radius: var(--r-2); box-shadow: var(--lift-2); background: var(--board-2); }
 
     /* Tutor sheet */
     .tutor {
@@ -1352,6 +1357,7 @@
           <div class="toolbar">
             <div class="chips" id="typeChips" role="group" aria-label="Filter by type"></div>
             <button type="button" class="btn" data-action="toggle-add"><svg class="icon" aria-hidden="true"><use href="#i-upload"></use></svg><span>Upload files</span></button>
+            <button type="button" class="btn" data-action="toggle-add" data-mode="paste"><svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg><span>Paste note</span></button>
           </div>
           <div id="folderNotice"></div>
           <div id="addPanelHost"></div>
@@ -1375,7 +1381,8 @@
       <button type="button" class="btn btn-sm btn-icon" data-action="viewer-fullscreen" aria-label="Full screen" title="Full screen"><svg class="icon" aria-hidden="true"><use href="#i-expand"></use></svg></button>
       <button type="button" class="btn btn-sm btn-icon" data-action="close-viewer" aria-label="Close viewer" title="Close (Esc)"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
     </div>
-    <iframe id="viewerFrame" title="PDF document" src="about:blank"></iframe>
+    <iframe id="viewerFrame" title="Document" src="about:blank"></iframe>
+    <div class="viewer-reader" id="viewerReader" hidden tabindex="0"></div>
   </dialog>
 
   <!-- Study tutor -->
@@ -1970,11 +1977,42 @@
     }
 
     // Returns { text, pages, status: "read" | "empty" | "blocked" | "unsupported" | "failed" }
+    // Pictures are sent to the AI as images; big ones are shrunk first so the
+    // request stays small.
+    const AI_IMAGE_EXT = /^(png|jpe?g|webp|gif|bmp)$/i;
+    const VIEWABLE_IMAGE_EXT = /^(png|jpe?g|webp|gif|bmp|svg)$/i;
+    const MAX_IMAGE_EDGE = 1600;
+
+    async function fileToImagePayload(file) {
+      let blob = file;
+      try {
+        const bitmap = await createImageBitmap(file);
+        const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
+        if (scale < 1 || file.size > 1.5 * 1024 * 1024) {
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+          canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+          canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+          blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.85)) || file;
+        }
+        if (bitmap.close) bitmap.close();
+      } catch (e) { /* fall back to the original file */ }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      return { mimeType: blob.type || file.type || "image/png", data: btoa(binary) };
+    }
+
     async function readDocument(source) {
       const isFile = typeof File !== "undefined" && source instanceof File;
       const name = isFile ? source.name : String(source);
       const ext = extensionOf(name);
       try {
+        if (isFile && AI_IMAGE_EXT.test(ext)) {
+          const image = await fileToImagePayload(source);
+          return { text: "", pages: 0, status: "image", image };
+        }
         if (ext === "txt" || ext === "md" || ext === "markdown") {
           const text = isFile ? await source.text() : await (await fetch(resolveHref(name))).text();
           const clean = text.slice(0, MAX_DOC_CHARS).trim();
@@ -2064,7 +2102,7 @@
     async function callGemini(messages, modelId, key, signal) {
       const contents = messages.map(m => ({
         role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }]
+        parts: [{ text: m.content }, ...(m.images || []).map(img => ({ inlineData: { mimeType: img.mimeType, data: img.data } }))]
       }));
       let res;
       try {
@@ -2102,7 +2140,7 @@
         res = await fetch("https://api.deepseek.com/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
-          body: JSON.stringify({ model: "deepseek-chat", messages, temperature: 0.6, max_tokens: 8000 }),
+          body: JSON.stringify({ model: "deepseek-chat", messages: messages.map(m => ({ role: m.role, content: m.content })), temperature: 0.6, max_tokens: 8000 }),
           signal
         });
       } catch (err) {
@@ -2125,7 +2163,13 @@
         res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}`, "X-Title": "HeartAttack 2026" },
-          body: JSON.stringify({ model: model || DEFAULT_OPENROUTER_MODEL, messages, temperature: 0.6, max_tokens: 6000 }),
+          body: JSON.stringify({
+            model: model || DEFAULT_OPENROUTER_MODEL,
+            messages: messages.map(m => (m.images || []).length
+              ? { role: m.role, content: [{ type: "text", text: m.content }, ...m.images.map(img => ({ type: "image_url", image_url: { url: `data:${img.mimeType};base64,${img.data}` } }))] }
+              : { role: m.role, content: m.content }),
+            temperature: 0.6, max_tokens: 6000
+          }),
           signal
         });
       } catch (err) {
@@ -2171,7 +2215,11 @@
         res = await fetch(`${base}/api/chat`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ model, messages, stream: false, options: { temperature: 0.6 } }),
+          body: JSON.stringify({
+            model,
+            messages: messages.map(m => (m.images || []).length ? { role: m.role, content: m.content, images: m.images.map(img => img.data) } : { role: m.role, content: m.content }),
+            stream: false, options: { temperature: 0.6 }
+          }),
           signal
         });
       } catch (err) {
@@ -2568,6 +2616,8 @@
     function materialKind(m) {
       if (m.type === "pdf") return "pdf";
       if (m.type === "pptx") return "pptx";
+      if (m.type === "image") return "image";
+      if (m.type === "note") return "note";
       if (m.type === "file") return "file";
       return "link";
     }
@@ -2576,6 +2626,8 @@
       const ext = extensionOf(filename);
       if (ext === "pdf") return "pdf";
       if (ext === "pptx" || ext === "ppt") return "pptx";
+      if (VIEWABLE_IMAGE_EXT.test(ext)) return "image";
+      if (ext === "txt" || ext === "md" || ext === "markdown") return "note";
       return isHttpUrl(filename) ? "link" : "file";
     }
 
@@ -2779,12 +2831,14 @@
     }
 
     function icPart(kind, extra = "", fileLabel = "") {
-      const label = kind === "pdf" ? "PDF" : kind === "pptx" ? "PPT" : kind === "file" ? (fileLabel || "DOC").slice(0, 3).toUpperCase() : "URL";
+      const label = kind === "pdf" ? "PDF" : kind === "pptx" ? "PPT" : kind === "image" ? "IMG" : kind === "note" ? "TXT"
+        : kind === "file" ? (fileLabel || "DOC").slice(0, 3).toUpperCase() : "URL";
       return `<span class="ic ${extra}" data-kind="${kind}" aria-hidden="true">${label}<span class="pin1"></span></span>`;
     }
 
     function kindName(kind) {
-      return kind === "pdf" ? "PDF" : kind === "pptx" ? "Slides" : kind === "file" ? "File" : "Link";
+      return kind === "pdf" ? "PDF" : kind === "pptx" ? "Slides" : kind === "image" ? "Picture"
+        : kind === "note" ? "Note" : kind === "file" ? "File" : "Link";
     }
 
     function storageLabel(m) {
@@ -3036,6 +3090,7 @@
             <p class="board-desc">${desc}</p>
             <div class="board-actions">
               <button type="button" class="btn btn-primary" data-action="toggle-add">${icon("upload")}<span>Upload files</span></button>
+              <button type="button" class="btn" data-action="toggle-add" data-mode="paste">${icon("copy")}<span>Paste note</span></button>
               ${isAll
                 ? `<button type="button" class="btn btn-instrument" data-action="open-tutor">${icon("wave")}<span>Open study tutor</span></button>`
                 : `<button type="button" class="btn btn-instrument" data-action="course-guide">${icon("wave")}<span>${store.get(KEYS.cache("subject_" + course.id)) ? "Open course guide" : "Course study guide"}</span></button>`}
@@ -3139,9 +3194,11 @@
         pptx: scope.filter(m => matchesType(m, "pptx")).length,
         lab: scope.filter(m => matchesType(m, "lab")).length,
         link: scope.filter(m => matchesType(m, "link")).length,
-        file: scope.filter(m => matchesType(m, "file")).length
+        file: scope.filter(m => matchesType(m, "file")).length,
+        image: scope.filter(m => matchesType(m, "image")).length,
+        note: scope.filter(m => matchesType(m, "note")).length
       };
-      const defs = [["all", "All"], ["pdf", "PDFs"], ["pptx", "Slides"], ["lab", "Labs"], ["file", "Other files"], ["link", "Links"]];
+      const defs = [["all", "All"], ["pdf", "PDFs"], ["pptx", "Slides"], ["lab", "Labs"], ["note", "Notes"], ["image", "Pictures"], ["file", "Other files"], ["link", "Links"]];
       $("#typeChips").innerHTML = defs
         .filter(([key]) => key === "all" || counts[key] > 0 || state.typeFilter === key)
         .map(([key, label]) => `<button type="button" class="chip" data-action="filter" data-type="${key}" aria-pressed="${state.typeFilter === key}">${label}<span class="chip-count">${counts[key]}</span></button>`)
@@ -3230,11 +3287,12 @@
           <p>${searching
             ? `Nothing here matches “${escapeHtml(state.query.trim())}”. Try a course name, an instructor, or part of a file name.`
             : filtered ? "Switch the filter back to All, or upload a file of this type."
-            : "Upload PDFs, slides or any study file, or drop them anywhere on this page. You can also add links to online resources."}</p>
+            : "Upload PDFs, slides or any study file, drop them anywhere on this page, or paste a screenshot or text (Ctrl+V) when a material can't be downloaded."}</p>
           <div class="empty-actions">
             ${searching ? `<button type="button" class="btn" data-action="clear-search">Clear search</button>` : ""}
             ${filtered ? `<button type="button" class="btn" data-action="filter" data-type="all">Show all types</button>` : ""}
             <button type="button" class="btn btn-primary" data-action="toggle-add">${icon("upload")}<span>Upload files</span></button>
+            <button type="button" class="btn" data-action="toggle-add" data-mode="paste">${icon("copy")}<span>Paste note</span></button>
           </div>
         </div>`;
         return;
@@ -3281,14 +3339,15 @@
     function renderAddPanel(open) {
       const host = $("#addPanelHost");
       if (!open) { host.innerHTML = ""; pendingUploads = []; return; }
-      const mode = state.addMode === "link" ? "link" : "upload";
+      const mode = ["link", "paste"].includes(state.addMode) ? state.addMode : "upload";
       const defaultCourse = state.addCourse || (state.courseId !== "all" ? state.courseId : COURSES[0].id);
       const defaultCategory = state.addCategory || CATEGORIES[0];
       host.innerHTML = `<form class="add-panel" id="addForm" novalidate aria-labelledby="addTitle">
         <div class="add-head">
-          <h3 id="addTitle">${mode === "link" ? "Add a link" : "Upload files"}</h3>
+          <h3 id="addTitle">${mode === "link" ? "Add a link" : mode === "paste" ? "Paste a picture or text" : "Upload files"}</h3>
           <div class="chips" role="radiogroup" aria-label="What to add">
             <button type="button" class="chip" role="radio" data-action="add-mode" data-mode="upload" aria-checked="${mode === "upload"}" aria-pressed="${mode === "upload"}">${icon("upload")}Files</button>
+            <button type="button" class="chip" role="radio" data-action="add-mode" data-mode="paste" aria-checked="${mode === "paste"}" aria-pressed="${mode === "paste"}">${icon("copy")}Paste</button>
             <button type="button" class="chip" role="radio" data-action="add-mode" data-mode="link" aria-checked="${mode === "link"}" aria-pressed="${mode === "link"}">${icon("external")}Link</button>
           </div>
         </div>
@@ -3301,7 +3360,17 @@
             <label class="field-label" for="addCategory">Category</label>
             <select id="addCategory" class="select">${CATEGORIES.map(c => `<option${c === defaultCategory ? " selected" : ""}>${escapeHtml(c)}</option>`).join("")}</select>
           </div>
-          ${mode === "upload" ? `
+          ${mode === "paste" ? `
+          <div class="field span-2">
+            <label class="field-label" for="addTitleInput">Title</label>
+            <input id="addTitleInput" class="input" type="text" placeholder="e.g. Week 5 board photos" autocomplete="off" value="${escapeHtml(state.addTitle || "")}">
+          </div>
+          <div class="field span-2">
+            <label class="field-label" for="addPaste">Paste here</label>
+            <textarea id="addPaste" class="textarea" rows="7" placeholder="Press Ctrl+V to paste a screenshot or photo, or paste text from a page you can't download. Markdown, $math$ and code blocks work."></textarea>
+            <span class="field-hint">Pictures are saved as image files, text becomes a note you can read and study with the tutor.</span>
+            <ul class="upload-list" id="addFileList" role="list"></ul>
+          </div>` : mode === "upload" ? `
           <div class="field span-2">
             <input type="file" id="addFiles" multiple hidden>
             <button type="button" class="dropzone upload-zone" id="addDrop" data-action="pick-uploads">
@@ -3322,15 +3391,15 @@
             <input id="addDesc" class="input" type="text" placeholder="What's there, in one line" autocomplete="off">
           </div>`}
         </div>
-        <p class="save-where" id="addWhere">${mode === "upload" ? folderWhereText(defaultCourse, defaultCategory) : "Links open in a new tab."}</p>
+        <p class="save-where" id="addWhere">${mode === "link" ? "Links open in a new tab." : folderWhereText(defaultCourse, defaultCategory)}</p>
         <p class="field-error" id="addError" role="alert" hidden></p>
         <div class="form-actions">
           <button type="button" class="btn btn-quiet" data-action="toggle-add">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="addSubmit">${mode === "upload" ? `${icon("upload")}<span>Upload</span>` : `${icon("plus")}<span>Add link</span>`}</button>
+          <button type="submit" class="btn btn-primary" id="addSubmit">${mode === "upload" ? `${icon("upload")}<span>Upload</span>` : mode === "paste" ? `${icon("plus")}<span>Save note</span>` : `${icon("plus")}<span>Add link</span>`}</button>
         </div>
       </form>`;
       renderUploadList();
-      const first = mode === "upload" ? $("#addDrop") : $("#addTitleInput");
+      const first = mode === "upload" ? $("#addDrop") : mode === "paste" ? $("#addPaste") : $("#addTitleInput");
       if (first) first.focus();
     }
 
@@ -3343,7 +3412,14 @@
         <button type="button" class="btn btn-sm btn-icon btn-quiet" data-action="remove-pending" data-index="${i}" aria-label="Remove ${escapeHtml(f.name)}">${icon("close")}</button>
       </li>`).join("");
       const submit = $("#addSubmit");
-      if (submit && state.addMode !== "link") {
+      if (submit && state.addMode === "paste") {
+        const pictures = pendingUploads.length;
+        const hasText = !!($("#addPaste") && $("#addPaste").value.trim());
+        const label = pictures && hasText ? (pictures > 1 ? `Save note and ${pictures} pictures` : "Save note and picture")
+          : pictures ? (pictures > 1 ? `Save ${pictures} pictures` : "Save picture")
+          : "Save note";
+        submit.innerHTML = `${icon("plus")}<span>${label}</span>`;
+      } else if (submit && state.addMode !== "link") {
         submit.innerHTML = `${icon("upload")}<span>${pendingUploads.length > 1 ? `Upload ${pendingUploads.length} files` : "Upload"}</span>`;
       }
     }
@@ -3360,7 +3436,7 @@
 
     function openUploadPanel(files) {
       state.addOpen = true;
-      state.addMode = "upload";
+      if (state.addMode !== "paste") state.addMode = "upload";
       if (state.tab !== "materials") selectTab("materials");
       renderAddPanel(true);
       if (files && files.length) addPendingUploads(files);
@@ -3395,6 +3471,30 @@
         toast(`Added “${title}” to ${course.name}.`);
         flashPart(material.id);
         return;
+      }
+
+      if (state.addMode === "paste") {
+        const text = ($("#addPaste").value || "").trim();
+        const title = ($("#addTitleInput").value || "").trim();
+        if (!text && !pendingUploads.length) {
+          err.textContent = "Paste a picture or some text first.";
+          err.hidden = false;
+          $("#addPaste").focus();
+          return;
+        }
+        const stamp = new Date().toISOString().slice(0, 10);
+        const baseName = safeName(title || `Pasted note ${stamp}`);
+        if (text) {
+          const noteBody = title ? `# ${title}\n\n${text}\n` : `${text}\n`;
+          pendingUploads.push(new File([noteBody], `${baseName}.md`, { type: "text/markdown" }));
+        }
+        pendingUploads = pendingUploads.map((f, i) => {
+          if (!AI_IMAGE_EXT.test(extensionOf(f.name)) || !/^pasted-image/i.test(f.name)) return f;
+          const ext = extensionOf(f.name) || "png";
+          const count = pendingUploads.filter(x => /^pasted-image/i.test(x.name)).length;
+          return new File([f], `${baseName}${count > 1 ? ` ${i + 1}` : ""}.${ext}`, { type: f.type });
+        });
+        state.addTitle = "";
       }
 
       if (!pendingUploads.length) {
@@ -3441,7 +3541,8 @@
       if (state.courseId !== "all") state.courseId = courseId;
       renderAll();
       const where = added[0].storage === "folder" ? "your study folder" : "this browser";
-      toast(`${added.length === 1 ? `Uploaded “${added[0].title}”` : `Uploaded ${added.length} files`} to ${course.name}, saved in ${where}.${failed.length ? ` ${failed.length} couldn't be saved.` : ""}${saved ? "" : " (The file list couldn't be saved; storage is full.)"}`, { type: failed.length || !saved ? "warn" : "ok", duration: 6000 });
+      const verb = state.addMode === "paste" ? "Saved" : "Uploaded";
+      toast(`${added.length === 1 ? `${verb} “${added[0].title}”` : `${verb} ${added.length} files`} to ${course.name}, saved in ${where}.${failed.length ? ` ${failed.length} couldn't be saved.` : ""}${saved ? "" : " (The file list couldn't be saved; storage is full.)"}`, { type: failed.length || !saved ? "warn" : "ok", duration: 6000 });
       flashPart(added[0].id);
     }
 
@@ -3879,14 +3980,26 @@
     let viewerMaterialId = null;
     let viewerObjectUrl = null;
 
-    function showViewer(m, url) {
+    function showViewer(m, url, { html = "" } = {}) {
       viewerMaterialId = m.id;
       const kind = materialKind(m);
       const ic = $("#viewer .viewer-head .ic");
-      if (ic) ic.innerHTML = `${kind === "pdf" ? "PDF" : (extensionOf(m.filename) || "DOC").slice(0, 3).toUpperCase()}<span class="pin1"></span>`;
+      if (ic) ic.innerHTML = `${kind === "pdf" ? "PDF" : kind === "image" ? "IMG" : kind === "note" ? "TXT" : (extensionOf(m.filename) || "DOC").slice(0, 3).toUpperCase()}<span class="pin1"></span>`;
       $("#viewerTitle").textContent = m.title;
-      $("#viewerExternal").href = url;
-      $("#viewerFrame").src = url;
+      $("#viewerExternal").href = url || "#";
+      const frame = $("#viewerFrame");
+      const reader = $("#viewerReader");
+      if (html) {
+        frame.hidden = true;
+        frame.src = "about:blank";
+        reader.hidden = false;
+        reader.innerHTML = html;
+      } else {
+        reader.hidden = true;
+        reader.innerHTML = "";
+        frame.hidden = false;
+        frame.src = url;
+      }
       showDialog($("#viewer"));
     }
 
@@ -3902,8 +4015,8 @@
       }
     }
 
-    // Images, text and PDFs show in the viewer; other files download.
-    const VIEWABLE = /^(pdf|png|jpe?g|gif|webp|svg|txt|md)$/i;
+    // PDFs, pictures and notes open in the viewer; other files download.
+    const VIEWABLE = /^(pdf|png|jpe?g|gif|webp|bmp|svg|txt|md|markdown)$/i;
 
     async function openMaterial(id) {
       const m = materialById(id);
@@ -3919,8 +4032,21 @@
         if (m.storage === "folder" && studyFolder.status !== "granted" && !(await allowStudyFolder())) throw Object.assign(new Error("permission"), { code: "permission" });
         const file = await getMaterialFile(m);
         if (viewerObjectUrl) URL.revokeObjectURL(viewerObjectUrl);
+        const kind = materialKind(m);
+        if (kind === "note") {
+          // Pasted notes read like the notebook: Markdown, math and code.
+          const text = await file.text();
+          viewerObjectUrl = URL.createObjectURL(new File([text], file.name, { type: "text/plain" }));
+          showViewer(m, viewerObjectUrl, { html: `<div class="prose" id="viewerProse"></div>` });
+          await renderMarkdownInto($("#viewerProse"), text);
+          return;
+        }
         const typed = file.type ? file : new File([file], file.name, { type: extensionOf(file.name) === "pdf" ? "application/pdf" : "text/plain" });
         viewerObjectUrl = URL.createObjectURL(typed);
+        if (kind === "image") {
+          showViewer(m, viewerObjectUrl, { html: `<img class="viewer-image" src="${viewerObjectUrl}" alt="${escapeHtml(m.title)}">` });
+          return;
+        }
         showViewer(m, viewerObjectUrl);
       } catch (e) {
         fileProblem(e, m);
@@ -4049,7 +4175,9 @@
       if (sel.kind === "material" && isStoredFile(sel.material)) {
         hint.textContent = sel.material.storage === "folder" && studyFolder.status !== "granted"
           ? "This file is in your study folder. HeartAttack will ask for permission to read it."
-          : "The tutor reads this file's text (long books are sampled across chapters).";
+          : materialKind(sel.material) === "image"
+            ? "The tutor looks at this picture, including handwriting."
+            : "The tutor reads this file's text (long books are sampled across chapters).";
       } else if (sel.kind === "material") {
         const k = materialKind(sel.material);
         hint.textContent = k === "link"
@@ -4169,14 +4297,16 @@
       </div>`;
     }
 
-    function buildGuidePrompt({ course, material, uploadName, docText, readStatus, focus }) {
+    function buildGuidePrompt({ course, material, uploadName, docText, readStatus, focus, hasImage }) {
       let p = `You are an expert university tutor at Inha University in Tashkent writing a study guide for a student.
 
 Course: ${course.name} (${course.code}), taught by ${course.instructor}.
 `;
       if (material) p += `\nMaterial: ${material.title}\nCategory: ${material.category}\nFile: ${material.filename}\nDescription: ${material.description || "none"}\n`;
       if (uploadName) p += `\nThe student uploaded their own document: ${uploadName}\n`;
-      if (docText) {
+      if (hasImage) {
+        p += `\nThe student attached a picture of this material (a photo or screenshot, possibly of handwritten notes). Read everything visible in the image, including handwriting, diagrams and formulas, and build the guide from what it actually shows. If part of it is unreadable, say so plainly.\n`;
+      } else if (docText) {
         p += `\nText extracted from the document (may be partial):\n"""\n${docText}\n"""\n`;
       } else if (material || uploadName) {
         p += `\nThe document text could not be read (status: ${readStatus}). Base the guide on the course scope and the material title and description. Do not claim to quote specific pages.\n`;
@@ -4214,6 +4344,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       failed: "the course outline (the file's text couldn't be extracted)",
       empty: "the course outline (the file has no selectable text)",
       unsupported: "the title and description",
+      image: "the picture you uploaded",
       permission: "the course name (HeartAttack needs permission to your study folder)",
       missing: "the course name (the file is no longer saved)",
       none: "the course outline"
@@ -4262,9 +4393,10 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
         uploadName: sel.kind === "upload" ? tutor.upload.name : "",
         docText: doc.text,
         readStatus: doc.status,
-        focus
+        focus,
+        hasImage: !!doc.image
       });
-      const messages = [{ role: "user", content: prompt }];
+      const messages = [doc.image ? { role: "user", content: prompt, images: [doc.image] } : { role: "user", content: prompt }];
       renderWorking(sel, 1);
 
       try {
@@ -4899,7 +5031,15 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
           case "download-material": downloadMaterial(id); break;
           case "pick-uploads": { const input = $("#addFiles"); if (input) input.click(); break; }
           case "remove-pending": pendingUploads.splice(Number(el.dataset.index), 1); renderUploadList(); break;
-          case "add-mode": state.addMode = el.dataset.mode; state.addCourse = ($("#addCourse") || {}).value; state.addCategory = ($("#addCategory") || {}).value; renderAddPanel(true); break;
+          case "add-mode": {
+            const titleBox = $("#addTitleInput");
+            state.addTitle = titleBox ? titleBox.value : "";
+            state.addMode = el.dataset.mode;
+            state.addCourse = ($("#addCourse") || {}).value;
+            state.addCategory = ($("#addCategory") || {}).value;
+            renderAddPanel(true);
+            break;
+          }
           case "choose-folder": await chooseStudyFolder(); if (state.addOpen) renderAddPanel(true); break;
           case "allow-folder": await allowStudyFolder(); if (state.addOpen) renderAddPanel(true); break;
           case "rescan-folder": {
@@ -4930,7 +5070,8 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
           case "delete-material": deleteMaterial(id); break;
           case "toggle-add":
             state.addOpen = !state.addOpen;
-            if (state.addOpen) state.addMode = "upload";
+            if (state.addOpen && !["paste", "link"].includes(el.dataset.mode)) state.addMode = "upload";
+            if (state.addOpen && el.dataset.mode) state.addMode = el.dataset.mode;
             if (state.addOpen && state.tab !== "materials") selectTab("materials");
             renderAddPanel(state.addOpen);
             if (state.addOpen) $("#addPanelHost").scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
@@ -5031,6 +5172,30 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
           sendFollowUp(q);
         }
       });
+      // Paste a screenshot or photo straight into the panel.
+      document.addEventListener("paste", (e) => {
+        const items = e.clipboardData ? [...e.clipboardData.items] : [];
+        const images = items.filter(i => i.kind === "file" && /^image\//.test(i.type)).map(i => i.getAsFile()).filter(Boolean);
+        const inPanel = e.target.closest && e.target.closest("#addForm");
+        const typing = e.target.closest && e.target.closest("input, textarea, [contenteditable]");
+        if (images.length) {
+          e.preventDefault();
+          const named = images.map((f, i) => new File([f], `pasted-image-${Date.now()}-${i}.${(f.type.split("/")[1] || "png").replace("jpeg", "jpg")}`, { type: f.type }));
+          if (inPanel && state.addMode === "paste") addPendingUploads(named);
+          else { state.addMode = "paste"; openUploadPanel(named); }
+          return;
+        }
+        if (inPanel || typing || $("dialog[open]")) return;
+        const text = e.clipboardData ? e.clipboardData.getData("text/plain") : "";
+        if (text && text.trim().length > 20) {
+          e.preventDefault();
+          state.addMode = "paste";
+          openUploadPanel([]);
+          const box = $("#addPaste");
+          if (box) { box.value = text; box.focus(); }
+        }
+      });
+
       document.addEventListener("change", (e) => {
         if (e.target.id === "addFiles") { addPendingUploads(e.target.files); e.target.value = ""; }
         if (e.target.id === "addCourse" || e.target.id === "addCategory") {
@@ -5040,6 +5205,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       });
       document.addEventListener("input", (e) => {
         if (e.target.id === "addTitleInput" || e.target.id === "addUrl") { const err = $("#addError"); if (err) err.hidden = true; }
+        if (e.target.id === "addPaste") { const err = $("#addError"); if (err) err.hidden = true; renderUploadList(); }
         if (e.target.id === "lTitle" || e.target.id === "lUrl") { const err = $("#lError"); if (err) err.hidden = true; }
         if (e.target.id === "fLabel" || e.target.id === "fValue") { const err = $("#fError"); if (err) err.hidden = true; }
         if (e.target.id === "tFocus") updateTutorControls();
@@ -5117,7 +5283,14 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
         d.addEventListener("close", () => {
           hideAskChip();
           if (document.fullscreenElement && d.contains(document.fullscreenElement)) document.exitFullscreen().catch(() => {});
-          if (d.id === "viewer") { $("#viewerFrame").src = "about:blank"; viewerMaterialId = null; }
+          if (d.id === "viewer") {
+            $("#viewerFrame").src = "about:blank";
+            $("#viewerReader").innerHTML = "";
+            $("#viewerReader").hidden = true;
+            $("#viewerFrame").hidden = false;
+            viewerMaterialId = null;
+            if (viewerObjectUrl) { URL.revokeObjectURL(viewerObjectUrl); viewerObjectUrl = null; }
+          }
         });
       });
 

@@ -8,8 +8,9 @@ A study desk for our Fall 2026 courses at Inha University in Tashkent. All your 
 ## What it does
 
 - **Course board.** Your 7 Fall 2026 courses start empty. Upload each course's files and they appear as parts on a breadboard. Mark a file done and its LED lights up; the amber pad shows what to study next.
-- **Your own files.** Upload PDFs, slides, Word files, images or anything else, or add links. Drop files anywhere on the page to upload them.
-- **Study tutor (AI).** Turns any uploaded file into a study guide with a concept diagram, the key formulas (LaTeX), a four-phase learning path and a self-test. You can ask follow-up questions, and saved guides reopen for free.
+- **Your own files.** Upload PDFs, slides, Word files, pictures or anything else, or add links. Drop files anywhere on the page to upload them.
+- **Paste what you can't download.** Press **Ctrl+V** anywhere to paste a screenshot or a photo of the board, or paste text from a page that doesn't allow downloads. Pictures are saved as images, text becomes a note you can read with math and code formatting.
+- **Study tutor (AI).** Turns any uploaded file — including a photo of handwritten notes, which it reads — into a study guide with a concept diagram, the key formulas (LaTeX), a four-phase learning path and a self-test. You can ask follow-up questions, and saved guides reopen for free.
 - **Notes, formulas and links.** Each course gets a notebook (Markdown, math, code), a formula sheet and a list of useful links, all written by you.
 - **Day and night themes.** Works on phones too.
 
