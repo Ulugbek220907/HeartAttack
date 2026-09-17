@@ -1451,19 +1451,32 @@
           <span class="field-hint" id="orModelsHint">The Free Models Router picks an available free model for you.</span>
         </div>
         <div class="field">
-          <label class="field-label" for="kOllamaModel">Ollama model <span class="label-note">(free Ollama app)</span></label>
+          <label class="field-label" for="kOllamaKey">Ollama API key <span class="label-note">(online, nothing to install)</span></label>
+          <div class="key-field">
+            <input id="kOllamaKey" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Ollama key">
+            <button type="button" class="btn btn-quiet" data-action="reveal" data-target="kOllamaKey" aria-label="Show key"></button>
+          </div>
+          <span class="field-hint">Create one at <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer">ollama.com/settings/keys</a>. Requests go through the HeartAttack relay, which passes your key to Ollama and never stores it.</span>
+        </div>
+        <div class="field">
+          <label class="field-label" for="kOllamaModel">Ollama model</label>
           <div class="inline-field">
-            <input id="kOllamaModel" class="input" type="text" list="ollamaModelList" autocomplete="off" spellcheck="false" placeholder="e.g. gpt-oss:20b-cloud">
+            <input id="kOllamaModel" class="input" type="text" list="ollamaModelList" autocomplete="off" spellcheck="false" placeholder="gpt-oss:20b">
             <button type="button" class="btn" data-action="detect-ollama">Find models</button>
           </div>
           <datalist id="ollamaModelList"></datalist>
-          <span class="field-hint">Install Ollama from <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">ollama.com/download</a> and sign in. Models ending in “-cloud” run on Ollama's servers within its free usage limits; others run on your computer. Leave empty to turn Ollama off.</span>
+          <span class="field-hint" id="ollamaHint">Leave empty to use gpt-oss:20b. Click “Find models” to see every model Ollama offers.</span>
           <details class="advanced" id="ollamaAdvanced">
-            <summary>Ollama address and browser access</summary>
+            <summary>Relay address and Ollama app</summary>
             <div class="field">
-              <label class="field-label" for="kOllamaUrl">Ollama address</label>
+              <label class="field-label" for="kOllamaRelay">HeartAttack relay address</label>
+              <input id="kOllamaRelay" class="input mono" type="text" autocomplete="off" spellcheck="false" placeholder="https://your-heartattack.onrender.com">
+              <span class="field-hint">Leave empty when you use HeartAttack from its website. When you open it from a folder, paste the website address here.</span>
+            </div>
+            <div class="field">
+              <label class="field-label" for="kOllamaUrl">Ollama app address <span class="label-note">(only without a key)</span></label>
               <input id="kOllamaUrl" class="input mono" type="text" autocomplete="off" spellcheck="false" placeholder="http://localhost:11434">
-              <span class="field-hint">If “Find models” can't connect, let web pages talk to Ollama: on Windows run <code>setx OLLAMA_ORIGINS "*"</code> in a terminal, then quit and reopen the Ollama app.</span>
+              <span class="field-hint">Only for people running the Ollama app instead of using a key. If it can't connect, run <code>setx OLLAMA_ORIGINS "*"</code> in a terminal and reopen the app.</span>
             </div>
           </details>
         </div>
@@ -1973,19 +1986,21 @@
     ];
     const DEFAULT_OPENROUTER_MODEL = "openrouter/free";
     const DEFAULT_OLLAMA_URL = "http://localhost:11434";
+    const DEFAULT_OLLAMA_CLOUD_MODEL = "gpt-oss:20b";
     const shortModelName = (id) => String(id || "").replace(/:free$/, "").split("/").pop();
 
     // OpenRouter and Ollama models are chosen in Settings, so the list is built on demand.
     function modelList() {
       const orModel = store.get("iut_openrouter_model", "") || DEFAULT_OPENROUTER_MODEL;
-      const olModel = (store.get("iut_ollama_model", "") || "").trim();
+      const olKey = !!(store.get("iut_ollama_key", "") || "").trim();
+      const olModel = (store.get("iut_ollama_model", "") || "").trim() || (olKey ? DEFAULT_OLLAMA_CLOUD_MODEL : "");
       return [
         ...GEMINI_MODELS,
         { id: "openrouter", provider: "openrouter", target: orModel, note: "Free models",
           name: orModel === DEFAULT_OPENROUTER_MODEL ? "OpenRouter free models" : `OpenRouter · ${shortModelName(orModel)}` },
         { id: "deepseek-chat", provider: "deepseek", name: "DeepSeek Chat", note: "Strong technical reasoning" },
-        { id: "ollama", provider: "ollama", target: olModel, note: "Through the Ollama app",
-          name: olModel ? `Ollama · ${olModel}` : "Ollama app" }
+        { id: "ollama", provider: "ollama", target: olModel, note: olKey ? "Ollama online" : "Through the Ollama app",
+          name: olModel ? `Ollama · ${olModel}` : "Ollama" }
       ];
     }
     const modelById = (id) => { const list = modelList(); return list.find(m => m.id === id) || list[0]; };
@@ -2103,27 +2118,57 @@
       return { text, truncated: choice.finish_reason === "length", servedBy: data.model || "" };
     }
 
-    // The Ollama desktop app (free) listens on this computer and can also run Ollama's cloud models.
-    async function callOllama(messages, baseUrl, model, signal) {
-      const base = String(baseUrl || DEFAULT_OLLAMA_URL).trim().replace(/\/+$/, "");
+    // With an API key, Ollama Cloud is reached through the HeartAttack relay (ollama.com blocks
+    // direct browser requests). Without a key, the local Ollama app is used.
+    function ollamaRelayBase(relaySetting) {
+      const configured = String(relaySetting || "").trim().replace(/\/+$/, "");
+      if (configured) return /^https?:\/\//i.test(configured) ? configured : "https://" + configured;
+      return /^https?:$/.test(location.protocol) ? location.origin : "";
+    }
+
+    function ollamaEndpoint(keys) {
+      if (keys.ollamaKey) {
+        const relay = ollamaRelayBase(keys.ollamaRelay);
+        return { viaRelay: true, key: keys.ollamaKey, relay, base: relay ? relay + "/ollama" : "" };
+      }
+      return { viaRelay: false, key: "", base: String(keys.ollamaUrl || DEFAULT_OLLAMA_URL).trim().replace(/\/+$/, "") };
+    }
+
+    async function callOllama(messages, endpoint, model, signal) {
+      if (endpoint.viaRelay && !endpoint.base) {
+        throw new AiError("To use your Ollama key from a file on your computer, add your HeartAttack website address under Settings → Relay address.", { kind: "unavailable" });
+      }
+      const base = endpoint.base;
+      const headers = { "Content-Type": "application/json" };
+      if (endpoint.key) headers.Authorization = `Bearer ${endpoint.key}`;
       let res;
       try {
         res = await fetch(`${base}/api/chat`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ model, messages, stream: false, options: { temperature: 0.6 } }),
           signal
         });
       } catch (err) {
         if (err.name === "AbortError") throw new AiError("Stopped.", { kind: "aborted" });
-        throw new AiError(`Couldn't reach the Ollama app at ${base}. Make sure it's running and allows browser access (see Settings).`, { kind: "network", detail: String(err) });
+        throw new AiError(endpoint.viaRelay
+          ? `Couldn't reach the HeartAttack relay at ${endpoint.relay}. If it's on Render's free plan it may be waking up, so try again in 30 seconds.`
+          : `Couldn't reach the Ollama app at ${base}. Make sure it's running and allows browser access (see Settings).`,
+          { kind: "network", detail: String(err) });
       }
       const body = await res.text();
       if (!res.ok) {
         let msg = "";
-        try { msg = JSON.parse(body).error || ""; } catch (e) { msg = body.slice(0, 200); }
+        let isJson = true;
+        try { msg = JSON.parse(body).error || ""; } catch (e) { isJson = false; msg = body.slice(0, 200); }
+        if (res.status === 404 && isJson && /model/i.test(msg)) throw new AiError(`Ollama doesn't offer the model “${model}”. Pick another with “Find models” in Settings.`, { kind: "unavailable", status: 404, detail: msg });
+        // A plain web server (no relay) answers with an HTML error page or refuses POST.
+        if (endpoint.viaRelay && (!isJson || [404, 405, 501].includes(res.status))) throw new AiError(`There's no HeartAttack relay at ${endpoint.relay}. Use HeartAttack from its Render website, or fix the relay address in Settings.`, { kind: "unavailable", status: 404, detail: msg });
         if (res.status === 404) throw new AiError(`Ollama doesn't have the model “${model}”. Download it first or pick another in Settings.`, { kind: "unavailable", status: 404, detail: msg });
-        if (res.status === 401 || res.status === 403) throw new AiError("Ollama needs you to sign in to use cloud models (run “ollama signin”).", { kind: "auth", status: res.status, detail: msg });
+        if (res.status === 401 || res.status === 403) {
+          throw new AiError(endpoint.viaRelay ? "Ollama rejected your API key. Check it in Settings." : "Ollama needs you to sign in to use cloud models (run “ollama signin”).", { kind: "auth", status: res.status, detail: msg });
+        }
+        if (res.status === 502 || res.status === 504) throw new AiError(msg || "The relay couldn't get an answer from Ollama.", { kind: "server", status: res.status, detail: msg });
         throw parseProviderError(res.status, body, "Ollama");
       }
       let data;
@@ -2322,6 +2367,8 @@
       openrouterModel: "iut_openrouter_model",
       ollamaUrl: "iut_ollama_url",
       ollamaModel: "iut_ollama_model",
+      ollamaKey: "iut_ollama_key",
+      ollamaRelay: "iut_ollama_relay",
       lastCourse: "iut_last_course",
       lastTab: "iut_last_tab"
     };
@@ -2468,7 +2515,9 @@
         deepseek: (store.get(KEYS.deepseek, "") || "").trim(),
         openrouter: (store.get(KEYS.openrouter, "") || "").trim(),
         ollamaUrl: (store.get(KEYS.ollamaUrl, "") || DEFAULT_OLLAMA_URL).trim(),
-        ollamaModel: (store.get(KEYS.ollamaModel, "") || "").trim()
+        ollamaModel: (store.get(KEYS.ollamaModel, "") || "").trim(),
+        ollamaKey: (store.get(KEYS.ollamaKey, "") || "").trim(),
+        ollamaRelay: (store.get(KEYS.ollamaRelay, "") || "").trim()
       };
     }
 
@@ -2476,7 +2525,7 @@
       if (provider === "gemini") return !!keys.gemini;
       if (provider === "openrouter") return !!keys.openrouter;
       if (provider === "deepseek") return !!keys.deepseek;
-      if (provider === "ollama") return !!(keys.ollamaUrl && keys.ollamaModel);
+      if (provider === "ollama") return !!keys.ollamaKey || !!(keys.ollamaUrl && keys.ollamaModel);
       return false;
     }
 
@@ -2505,7 +2554,7 @@
         try {
           const result = model.provider === "gemini" ? await callGemini(messages, id, keys.gemini, signal)
             : model.provider === "openrouter" ? await callOpenRouter(messages, keys.openrouter, model.target, signal)
-            : model.provider === "ollama" ? await callOllama(messages, keys.ollamaUrl, keys.ollamaModel, signal)
+            : model.provider === "ollama" ? await callOllama(messages, ollamaEndpoint(keys), keys.ollamaModel || DEFAULT_OLLAMA_CLOUD_MODEL, signal)
             : await callDeepSeek(messages, keys.deepseek, signal);
           const answered = result.servedBy && model.provider === "openrouter"
             ? { ...model, name: `OpenRouter · ${shortModelName(result.servedBy)}` }
@@ -3692,7 +3741,7 @@
           <h3>Turn any file into a study guide</h3>
           <p>Pick a course and a material on the left (or drop in your own file). The tutor writes a guide with a concept diagram, the key formulas, a four-phase learning path and a self-test. Guides are saved in this browser, so reopening one costs nothing.</p>
         </div>
-        ${keyed ? "" : `<div class="callout"><span class="led is-amber is-blink" aria-hidden="true"></span><div><strong>Connect a free AI provider first.</strong> Get a free key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google Gemini</a> or <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a> (about a minute, no card needed), or connect the free Ollama app, then add it in Settings. Keys stay in this browser and are never saved into the HeartAttack file.<div style="margin-top:10px"><button type="button" class="btn btn-sm btn-primary" data-action="open-settings">Open settings</button></div></div></div>`}
+        ${keyed ? "" : `<div class="callout"><span class="led is-amber is-blink" aria-hidden="true"></span><div><strong>Connect a free AI provider first.</strong> Get a free key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google Gemini</a> or <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a> (about a minute, no card needed), or paste an <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer">Ollama</a> key, then add it in Settings. Keys stay in this browser and are never saved into the HeartAttack file.<div style="margin-top:10px"><button type="button" class="btn btn-sm btn-primary" data-action="open-settings">Open settings</button></div></div></div>`}
         ${saved.length ? `<section class="panel" aria-labelledby="savedTitle">
           <div class="panel-head"><div><h2 id="savedTitle">Saved guides</h2><div class="sub">Open instantly, no AI call</div></div></div>
           <div class="saved-list">${saved.map(g => `<button type="button" class="saved-row" data-action="open-saved" data-key="${escapeHtml(g.cacheKey)}">
@@ -3894,7 +3943,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
         empty: "The AI returned an empty answer"
       };
       const tips = {
-        nokey: "Get a free key from Google Gemini or OpenRouter, or connect the Ollama app, then add it in Settings.",
+        nokey: "Get a free key from Google Gemini, OpenRouter or Ollama, then add it in Settings.",
         auth: "Open Settings and paste the key again. Make sure there are no spaces and that the key hasn't been deleted in your provider dashboard. For Ollama cloud models, sign in to the Ollama app.",
         quota: "Free models reset their limits every minute and every day. Wait a minute and try again, pick another model, or add a second free provider (OpenRouter or the Ollama app) as a backup.",
         network: "Check your internet connection. If you're on a university network, a VPN or mobile hotspot sometimes helps.",
@@ -3905,7 +3954,7 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       const failures = err.failures || [];
       $("#tStage").innerHTML = `<div class="working" role="alert">
         <div class="next-part-label silk"><span class="led ${kind === "nokey" ? "is-amber is-blink" : "is-red"}" aria-hidden="true"></span>${escapeHtml(titles[kind] || "Something went wrong")}</div>
-        <p class="error-tip" style="color:var(--ink-2);line-height:1.6">${kind === "nokey" ? `Get a free key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google Gemini</a> or <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a> (about a minute, no card needed), or connect the free Ollama app, then add it in Settings. Keys stay in this browser only.` : escapeHtml(kind === "other" ? err.message : tips[kind])}</p>
+        <p class="error-tip" style="color:var(--ink-2);line-height:1.6">${kind === "nokey" ? `Get a free key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google Gemini</a> or <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a> (about a minute, no card needed), or paste an <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer">Ollama</a> key, then add it in Settings. Keys stay in this browser only.` : escapeHtml(kind === "other" ? err.message : tips[kind])}</p>
         ${failures.length ? `<details><summary class="field-hint" style="cursor:pointer">What each model said</summary><ul style="margin-top:8px;padding-left:18px;font-size:var(--t-sm);color:var(--ink-2)">${failures.map(f => `<li><strong>${escapeHtml(f.model.name)}:</strong> ${escapeHtml(f.error.message)}${f.error.detail ? ` <span class="mono" style="color:var(--ink-3)">${escapeHtml(String(f.error.detail).slice(0, 180))}</span>` : ""}</li>`).join("")}</ul></details>` : ""}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${kind === "nokey" || kind === "auth" ? `<button type="button" class="btn btn-primary" data-action="open-settings">Open settings</button>` : `<button type="button" class="btn btn-primary" data-action="generate">${icon("refresh")}<span>Try again</span></button>`}
@@ -4198,10 +4247,12 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       $("#kGemini").value = keys.gemini;
       $("#kDeepseek").value = keys.deepseek;
       $("#kOpenrouter").value = keys.openrouter;
+      $("#kOllamaKey").value = keys.ollamaKey;
       $("#kOllamaModel").value = keys.ollamaModel;
+      $("#kOllamaRelay").value = keys.ollamaRelay;
       $("#kOllamaUrl").value = store.get(KEYS.ollamaUrl, "") || "";
       fillOpenRouterSelect(store.get(KEYS.openrouterModel, "") || DEFAULT_OPENROUTER_MODEL);
-      ["kGemini", "kDeepseek", "kOpenrouter"].forEach(id => { $("#" + id).type = "password"; });
+      ["kGemini", "kDeepseek", "kOpenrouter", "kOllamaKey"].forEach(id => { $("#" + id).type = "password"; });
       $$('[data-action="reveal"]').forEach(b => { b.innerHTML = icon("eye"); b.setAttribute("aria-label", "Show key"); });
       $("#kModel").innerHTML = modelOptions(store.get(KEYS.model, "gemini-flash-latest"));
       refreshStorageInfo();
@@ -4243,24 +4294,46 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
     }
 
     async function detectOllamaModels(btn) {
-      const base = ($("#kOllamaUrl").value.trim() || DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
+      const endpoint = ollamaEndpoint({
+        ollamaKey: $("#kOllamaKey").value.replace(/\s+/g, ""),
+        ollamaRelay: $("#kOllamaRelay").value.trim(),
+        ollamaUrl: $("#kOllamaUrl").value.trim()
+      });
+      if (endpoint.viaRelay && !endpoint.base) {
+        $("#ollamaAdvanced").open = true;
+        toast("You opened HeartAttack from a folder, so add your HeartAttack website address as the relay address first.", { type: "warn", duration: 9000 });
+        return;
+      }
       btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = "Checking…";
       try {
-        const res = await fetch(`${base}/api/tags`);
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        const res = await fetch(`${endpoint.base}/api/tags`, { headers: endpoint.key ? { Authorization: `Bearer ${endpoint.key}` } : {} });
+        if (!res.ok) throw Object.assign(new Error("HTTP " + res.status), { status: res.status });
         const data = await res.json();
-        const names = (data.models || []).map(m => m.name).filter(Boolean);
+        const names = (data.models || []).map(m => m.name).filter(Boolean).sort((a, b) => a.localeCompare(b));
         $("#ollamaModelList").innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
-        if (!$("#kOllamaModel").value.trim() && names.length) $("#kOllamaModel").value = names[0];
+        const current = $("#kOllamaModel").value.trim();
+        if (!current && names.length) {
+          $("#kOllamaModel").value = names.includes(DEFAULT_OLLAMA_CLOUD_MODEL) ? DEFAULT_OLLAMA_CLOUD_MODEL : names[0];
+        }
+        $("#ollamaHint").textContent = names.length
+          ? `${names.length} models available: ${names.slice(0, 6).join(", ")}${names.length > 6 ? "…" : ""}. Click the model box to pick one.`
+          : "Connected, but no models were listed.";
         toast(names.length
-          ? `Ollama is connected: ${names.length} ${names.length === 1 ? "model" : "models"} found. Pick one from the list.`
-          : "Ollama is connected but has no models yet. In a terminal run: ollama pull gpt-oss:20b-cloud",
+          ? `${endpoint.viaRelay ? "Relay is working" : "Ollama app is connected"}: ${names.length} ${names.length === 1 ? "model" : "models"} found.`
+          : endpoint.viaRelay ? "The relay answered but Ollama listed no models." : "Ollama is connected but has no models yet. In a terminal run: ollama pull gpt-oss:20b",
           { type: names.length ? "ok" : "warn", duration: 7000 });
       } catch (e) {
         $("#ollamaAdvanced").open = true;
-        toast(`Couldn't reach Ollama at ${base}. Is the app running? If it is, allow browser access (see the tip under Ollama address).`, { type: "error", duration: 9000 });
+        const where = endpoint.viaRelay ? endpoint.relay : endpoint.base;
+        toast(endpoint.viaRelay
+          ? ([404, 405, 501].includes(e.status) ? `There's no HeartAttack relay at ${where}. Check the relay address.` : `Couldn't reach the relay at ${where}. On Render's free plan it can take about 30 seconds to wake up; try again.`)
+          : `Couldn't reach the Ollama app at ${where}. Is it running? If it is, allow browser access (see the tip under Ollama app address).`,
+          { type: "error", duration: 9000 });
       } finally {
         btn.disabled = false;
+        btn.textContent = label;
       }
     }
 
@@ -4307,7 +4380,9 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
       const gemini = clean($("#kGemini").value);
       const deepseek = clean($("#kDeepseek").value);
       const openrouter = clean($("#kOpenrouter").value);
+      const ollamaKey = clean($("#kOllamaKey").value);
       const ollamaModel = $("#kOllamaModel").value.trim();
+      const ollamaRelay = $("#kOllamaRelay").value.trim().replace(/\/+$/, "");
       const ollamaUrl = $("#kOllamaUrl").value.trim().replace(/\/+$/, "");
       const setOrRemove = (key, value) => value ? store.set(key, value) : (store.remove(key), true);
       const ok = [
@@ -4315,7 +4390,9 @@ Be accurate and concrete. Prefer worked examples to generic advice.`;
         setOrRemove(KEYS.deepseek, deepseek),
         setOrRemove(KEYS.openrouter, openrouter),
         store.set(KEYS.openrouterModel, $("#kOpenrouterModel").value || DEFAULT_OPENROUTER_MODEL),
+        setOrRemove(KEYS.ollamaKey, ollamaKey),
         setOrRemove(KEYS.ollamaModel, ollamaModel),
+        setOrRemove(KEYS.ollamaRelay, ollamaRelay),
         setOrRemove(KEYS.ollamaUrl, ollamaUrl),
         store.set(KEYS.model, $("#kModel").value)
       ].every(Boolean);

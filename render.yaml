@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: heartattack
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /ollama/health
+    autoDeploy: true

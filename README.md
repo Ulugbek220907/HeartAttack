@@ -13,7 +13,7 @@ A study desk for our Fall 2026 courses at Inha University in Tashkent. All your 
 - **Formulas & links.** A formula sheet for each course that you can add to (the tutor can fill it for you), plus useful links.
 - **Day and night themes.** Works on phones too.
 
-Everything is one file, `index.html`. There's nothing to install and no account to create.
+The whole app is one file, `index.html`. There's nothing to install and no account to create. A tiny optional server (`relay/server.js`) hosts it online and makes Ollama API keys work.
 
 ## Getting started
 
@@ -39,21 +39,29 @@ Open **Settings** (the sliders icon, top right) and paste your own key. Keys are
 |---|---|---|
 | **Google Gemini** | Free tier | Create a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (about a minute, no card needed). |
 | **OpenRouter** | Free models | Create a key at [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys). Keep the model on **Free Models Router**, or pick any model marked free. Free models have a daily request limit. |
-| **Ollama app** | Free | Install [Ollama](https://ollama.com/download) and sign in. In Settings, click **Find models**. Models ending in `-cloud` (for example `gpt-oss:20b-cloud`) run on Ollama's servers within its free limits; other models run on your own computer. |
+| **Ollama** | Free tier | Create a key at [ollama.com/settings/keys](https://ollama.com/settings/keys) and paste it into **Ollama API key**. Nothing to install. Click **Find models** to choose a model (the default is `gpt-oss:20b`). Needs the HeartAttack website or relay; see [Put it online](#put-it-online-render-free). |
 | DeepSeek | Paid (cheap) | Optional backup: [platform.deepseek.com](https://platform.deepseek.com/api_keys). |
 
 If one provider hits its limit, the tutor automatically tries the next one you've set up.
 
-**Ollama tip:** if **Find models** says it can't connect, allow web pages to talk to Ollama. On Windows, run this once in a terminal, then quit and reopen the Ollama app:
+**Why Ollama needs the relay:** Ollama's online service doesn't accept requests straight from web pages, so HeartAttack sends them through its own small relay. The relay forwards only chat and model-list requests and passes your key to Ollama. It never saves or logs keys or messages.
 
-```bat
-setx OLLAMA_ORIGINS "*"
-```
+- Using HeartAttack **from its website:** nothing extra to set up.
+- Opening `index.html` **from a folder:** in Settings → *Relay address and Ollama app*, paste the website address (for example `https://heartattack.onrender.com`).
+- Already have the **Ollama app** installed? Leave the key empty and set the app address instead.
 
-The API keys on Ollama's website can't be used here, because Ollama's cloud service doesn't accept requests from web pages. The Ollama app is the free way in.
+## Put it online (Render, free)
+
+1. Sign in at [render.com](https://render.com) with GitHub.
+2. Click **New → Blueprint**, pick this repo, and click **Apply**. The included `render.yaml` sets everything up. (To do it by hand instead: **New → Web Service**, build command `npm install`, start command `npm start`.)
+3. You get an address like `https://heartattack.onrender.com`. Share it with classmates; every push to `main` redeploys it.
+
+On Render's free plan, the site goes to sleep after about 15 minutes without visitors, so the first visit afterwards takes 30–60 seconds to load.
+
+You can also run it on your own computer with Node.js 18+: `npm start`, then open http://localhost:10000.
 
 ## Good to know
 
-- **Your data stays in your browser.** Progress, notes, formulas, saved guides and keys live in the browser's local storage. Nothing is uploaded, and every classmate has their own.
+- **Your data stays in your browser.** Progress, notes, formulas, saved guides and keys live in the browser's local storage, on each device separately. Nothing is saved on the server, and every classmate has their own. The website and a copy opened from a folder keep separate data.
 - **Opening the file straight from the folder:** browsers don't let a page read other local files, so the tutor can't open your course PDFs by itself. When a guide says it only saw the course outline, drop the file into **Use your own file** in the tutor to get a guide built from the actual pages.
 - **Keyboard:** `/` searches, `Esc` closes dialogs, `E` starts writing in Notes, and `Enter` sends a question to the tutor.

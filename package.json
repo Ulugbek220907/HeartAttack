@@ -1,0 +1,12 @@
+{
+  "name": "heartattack-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HeartAttack 2026 study board with a small relay for Ollama Cloud.",
+  "scripts": {
+    "start": "node relay/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
